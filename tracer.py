@@ -315,37 +315,3 @@ def prev_line_k_v_pairs(changed_values_keys):
             for (key, v) in prev_line_locals[-1]
             if key in changed_values_keys
     ]
-
-
-def othh():
-    x = 6666
-    # if not x:
-    #     pass
-    # else:
-    #     x += 1
-    y = "adsd"
-    return x
-
-
-@trace
-def afn(input_arg):
-    x = 10
-    string = "a String "
-    thirdVar = string * 2
-
-    # neerj = int('123d')
-    # x = othh()
-    # y = 5
-    # y = othh()
-    # for zz in range(4):
-        # x += zz
-
-    # oth = thirdVar.split() * 2
-    # neww = 666
-    x = 20
-    idk = {"hello": "world"}
-    # idk = list(range(30))
-    return idk
-
-# call the function
-idk = afn(666)
