@@ -47,7 +47,10 @@ def test_lots(input_arg):
     x = 20
     idk = {"hello": "world"}
     idk = list(range(30))
-    return idk
+    z = idk + ["frig"] + [x]
+    print(z)
+    return z[-2]
+    # return idk
 
 
 @trace
@@ -64,4 +67,5 @@ def test_dict(input_arg):
 
 if __name__ == "__main__":
     # call the function
-    idk = test_dict(666)
+    # idk = test_dict(666)
+    idk = test_function_call(666)

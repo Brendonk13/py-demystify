@@ -4,6 +4,8 @@ import functools
 import os
 import traceback
 from re import search
+from colorama import Fore, Back, Style, init
+import colorful as cf
 
 # next: save this in git, see how it looks with printed on the same line and just fix formatting in general
 
@@ -58,7 +60,8 @@ def print_on_func_call(fxn_name, fxn_args):
     # pop from function stack when I leave)
     prev_line_locals.append(set())
     signature = fxn_name + fxn_args
-    print(f'... calling {signature}')
+    # print(cf.yellow('... calling'), signature)
+    print(cf.yellow(f'... calling {signature}'))
 
 
 def trace_this_func(fxn_name):
@@ -93,11 +96,14 @@ def once_per_func_tracer(frame, event, arg):
 
 
 def init_tracer_globals():
+    cf.use_style("solarized")
     global prev_line_code
     # global prev_line_locals_dict
     global prev_line_locals
     global prev_line_num
 
+    global PRINTED_LINE
+    global ADDITIONAL_LINE
     global JUST_PRINTED_RETURN
     global FIRST_FUNCTION
     global NEED_TO_PRINT_FUNCTION
@@ -107,6 +113,8 @@ def init_tracer_globals():
     FIRST_FUNCTION = True
     NEED_TO_PRINT_FUNCTION = False
     JUST_PRINTED_RETURN = False
+    PRINTED_LINE = ""
+    ADDITIONAL_LINE = ""
 
     # is a set of var_name, val tuples.
     # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
@@ -141,6 +149,7 @@ def trace(function):
 
 def print_code():
     global JUST_PRINTED_RETURN
+    global PRINTED_LINE
     if JUST_PRINTED_RETURN:
         JUST_PRINTED_RETURN = False
         return
@@ -149,7 +158,8 @@ def print_code():
     if prev_line_code[0] != "0":
         # should do more stuff instead of always printing lstrip'd lines
         # need to show conditionals/their indentations better.
-        print(f'* {prev_line_num[0]} |  {prev_line_code[0].lstrip(" ")}')
+        # print(cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}')
+        PRINTED_LINE = cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}'
     else:
         # only exectuted on first iteration
         print()
@@ -288,22 +298,34 @@ def assigned_constant():
 
 
 def print_vars(changed_values):
-
     if NEED_TO_PRINT_FUNCTION:
         print()
         return
 
+    have_printed = False
     for (var_name, old_value) in prev_line_locals[-1]:
     # for var_name in changed_values.keys():
     #     old_value = prev_line_locals[var_name]
         if var_name in changed_values:
-            print(f"  {var_name}={old_value} --> new '{var_name}' value: {changed_values[var_name]}")
-            print()
+            have_printed = True
+            print(*PRINTED_LINE)
+            # print(cf.red(f"  {var_name}={old_value}"), " ──>", cf.green(f"new '{var_name}' value: {changed_values[var_name]}"))
+            # ADDITIONAL_LINE = 
+            print(cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}"))
+            # print()
 
     if not assigned_constant():
-        print(f"  {changed_values}")
-        print()
+        have_printed = True
+        # print(*PRINTED_LINE, cf.cyan(" #"), changed_values)
+        if len(changed_values) > 1:
+            raise ValueError("multiple values changed in one line")
+        var_name = tuple(changed_values.keys())[0]
+        value = tuple(changed_values.values())[0]
+        print(*PRINTED_LINE, cf.bold(cf.cyan(" #")), f"{var_name} = {value}")
+        # print()
 
+    if not have_printed:
+        print(*PRINTED_LINE)
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
 def prev_line_k_v_pairs(changed_values_keys):
