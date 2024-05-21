@@ -28,6 +28,9 @@ Todo:
     figure out the diff shit and q's i wrote down
 
     I think I need to use the dis module to find intermediate fxn return values
+
+convert to file writing:
+    - then I can just print things and not have intermediate functions print in order of execution
 """
 
 
@@ -113,8 +116,8 @@ def init_tracer_globals():
     FIRST_FUNCTION = True
     NEED_TO_PRINT_FUNCTION = False
     JUST_PRINTED_RETURN = False
-    PRINTED_LINE = ""
-    ADDITIONAL_LINE = ""
+    PRINTED_LINE = []
+    ADDITIONAL_LINE = []
 
     # is a set of var_name, val tuples.
     # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
@@ -139,7 +142,6 @@ def trace(function):
             old = sys.gettrace()
             init_tracer_globals()
 
-            print("======================================================try catch")
             sys.settrace(once_per_func_tracer)
             return function(*args, **kwds) #executes decorated function
         finally:
@@ -159,10 +161,10 @@ def print_code():
         # should do more stuff instead of always printing lstrip'd lines
         # need to show conditionals/their indentations better.
         # print(cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}')
-        PRINTED_LINE = cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}'
-    else:
-        # only exectuted on first iteration
-        print()
+        PRINTED_LINE += [cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}']
+    # else:
+    #     # only exectuted on first iteration
+    #     print() # was
 
 
 def update_line_code(next_line_executed):
@@ -188,8 +190,15 @@ def make_locals_hashable(curr_line_locals):
 def trace_lines(frame, event, arg):
     """ called before "next_line_executed" is ran, so we see the changes in frame.f_locals late
     """
+    global PRINTED_LINE
+    global ADDITIONAL_LINE
     global JUST_PRINTED_RETURN
     global NEED_TO_PRINT_FUNCTION
+
+    # clear last results
+    PRINTED_LINE.clear()
+    ADDITIONAL_LINE.clear()
+
     curr_line_locals = frame.f_locals
     hashable_curr_line_locals = make_locals_hashable(curr_line_locals)
     # print("CURR LOCALS", curr_line_locals)
@@ -223,6 +232,10 @@ def trace_lines(frame, event, arg):
     update_line_code(next_line_executed)
     update_line_num(frame.f_lineno)
 
+    print(*PRINTED_LINE)
+    if ADDITIONAL_LINE:
+        print(*ADDITIONAL_LINE)
+
     fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
     # if fxn_args.startswith('()'): then no args
     if NEED_TO_PRINT_FUNCTION:
@@ -242,7 +255,7 @@ def trace_lines(frame, event, arg):
 def print_on_return(fxn_name, arg):
     print('%s returned %r' % (fxn_name, arg))
     # print(f'{fxn_name} returned {arg}')
-    print()
+    # print() # was
 
 
 def deal_with_lists(curr_line_locals):
@@ -281,15 +294,13 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
     # is this correct ?
     prev_line_locals[-1].update(make_locals_hashable(changed_values))
 
-    # print(f'changed: {changed_values}')
-    # print()
     return
 
 def assigned_constant():
     assignment = prev_line_code[0].split('=')[-1].strip()
 
     # todo make this find dicts, differentiate between {1:1} and {1:1, **other_dict}
-    if (assignment.isdigit() 
+    if (assignment.isdigit()
         or search(r'^".*"$', assignment)
         or search(r"^'.*'$", assignment)
         or assignment.startswith('return')):
@@ -298,34 +309,36 @@ def assigned_constant():
 
 
 def print_vars(changed_values):
+    global PRINTED_LINE
+    global ADDITIONAL_LINE
     if NEED_TO_PRINT_FUNCTION:
-        print()
+        # print() # was
         return
 
-    have_printed = False
+    # have_printed = False
     for (var_name, old_value) in prev_line_locals[-1]:
     # for var_name in changed_values.keys():
     #     old_value = prev_line_locals[var_name]
         if var_name in changed_values:
-            have_printed = True
-            print(*PRINTED_LINE)
+            # have_printed = True
+            # print(*PRINTED_LINE)
             # print(cf.red(f"  {var_name}={old_value}"), " ──>", cf.green(f"new '{var_name}' value: {changed_values[var_name]}"))
-            # ADDITIONAL_LINE = 
-            print(cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}"))
+            ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}")]
+            # print(cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}"))
             # print()
 
     if not assigned_constant():
-        have_printed = True
+        # have_printed = True
         # print(*PRINTED_LINE, cf.cyan(" #"), changed_values)
         if len(changed_values) > 1:
             raise ValueError("multiple values changed in one line")
         var_name = tuple(changed_values.keys())[0]
         value = tuple(changed_values.values())[0]
-        print(*PRINTED_LINE, cf.bold(cf.cyan(" #")), f"{var_name} = {value}")
-        # print()
+        PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+        # print(*PRINTED_LINE, cf.bold(cf.cyan(" #")), f"{var_name} = {value}")
 
-    if not have_printed:
-        print(*PRINTED_LINE)
+    # if not have_printed:
+    #     print(*PRINTED_LINE)
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
 def prev_line_k_v_pairs(changed_values_keys):
