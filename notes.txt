@@ -1,0 +1,26 @@
+
+Todo:
+    create global set of values
+    figure out the diff shit and q's i wrote down
+
+    I think I need to use the dis module to find intermediate fxn return values
+
+convert to file writing:
+    - then I can just print things and not have intermediate functions print in order of execution
+
+    -- problem: how to make it clear for when the same function is called twice with diff arguments
+
+
+Not working:
+
+    not sure if I should be using a set anymore ..
+    cuz i gotta convert hella other stuff to set each time
+
+    Returns:
+        a returned value doesnt print unless its a reassignment
+            y = 5
+            y = othh()
+            works
+
+            y = othh()
+            -- prints nothing
