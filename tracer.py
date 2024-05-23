@@ -8,25 +8,31 @@ from colorama import Fore, Back, Style, init
 import colorful as cf
 
 
-def print_on_func_call(fxn_name, fxn_args):
+def on_func_call(fxn_name, fxn_args):
     _LOCALS.append(set())
     signature = fxn_name + fxn_args
+    #CSV: line_num, caller_line_number, function_signature, caller_function_signature, original_line, formatted_line, additional_line
+    _FILE.write(_LINE_NUM, )
     # print(cf.yellow(f'... calling {signature}'))
 
 
 def trace_this_func(fxn_name):
     # if fxn_name in list(should_trace): return True
+    # todo: make this more granular
     return True
 
 
 
 def once_per_func_tracer(frame, event, arg):
+    #CSV: line_num, caller_line_number, function_signature, caller_function_signature, original_line, formatted_line, additional_line
+    _FILE.write("line_number,caller_line_number,function_signature,caller_function_signature,original_line,formatted_line,additional_line")
     # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
     # global FIRST_FUNCTION
     # global NEED_TO_PRINT_FUNCTION
     name = frame.f_code.co_name
     if event == 'call':
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+        on_func_call(name, fxn_args)
         # if FIRST_FUNCTION:
         #     print_on_func_call(name, fxn_args)
         #     FIRST_FUNCTION = False
@@ -45,14 +51,15 @@ def init_tracer_globals():
     # cf.use_style("solarized")
     # global prev_line_locals_dict
     global _LINE_NUM
-    global _CALLED_FROM_LINE
+    global _CALLER_LINE_NUM
     global _FXN_SIGNATURE
+    global _CALLER_FXN_SIGNATURE
     global _ORIGINAL_CODE
     global _FORMATTED_LINE
     global _ADDITIONAL_LINE
     global _LOCALS
     # #CSV: line_num, called_from_line, function_signature, line_of_code, changed_values, return statement
-    #CSV: line_num, called_from_line, function_signature, original_line, formatted_line, additional_line
+    #CSV: line_num, caller_line_number, function_signature, caller_function_signature, original_line, formatted_line, additional_line
 
     # global _FORMATTED_LINE
     # global ADDITIONAL_LINE
@@ -102,11 +109,7 @@ def trace(function):
 
 
 def print_code():
-    # global JUST_PRINTED_RETURN
     global _FORMATTED_LINE
-    # if JUST_PRINTED_RETURN:
-    #     JUST_PRINTED_RETURN = False
-    #     return
 
     # no print on first call (where value isss empty string
     if _ORIGINAL_CODE[0] != "0":
@@ -115,9 +118,6 @@ def print_code():
         # print(cf.cyan(f'*  {_LINE_NUM[0]} │  '), f'{_ORIGINAL_CODE[0].lstrip(" ")}')
         # _FORMATTED_LINE += [cf.cyan(f'*  {_LINE_NUM[0]} │  '), f'{_ORIGINAL_CODE[0].lstrip(" ")}']
         _FORMATTED_LINE += [f'*  {_LINE_NUM[0]} │  ', f'{_ORIGINAL_CODE[0].lstrip(" ")}']
-    # else:
-    #     # only exectuted on first iteration
-    #     print() # was
 
 
 def update_line_code(next_line_executed):
@@ -128,8 +128,6 @@ def update_line_num(line_num):
 
 
 def make_locals_hashable(curr_line_locals):
-    # try:
-    #     return set(curr_line_locals.items())
     hashable_locals = set()
     for var_name, value in curr_line_locals.items():
         if isinstance(value, dict):
@@ -145,8 +143,6 @@ def trace_lines(frame, event, arg):
     """
     global _FORMATTED_LINE
     global _ADDITIONAL_LINE
-    # global JUST_PRINTED_RETURN
-    # global NEED_TO_PRINT_FUNCTION
 
     # clear last results
     _FORMATTED_LINE.clear()
@@ -160,23 +156,14 @@ def trace_lines(frame, event, arg):
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
         signature = name + fxn_args
         print('The function call: %s produced an exception:\n' % signature)
-        # tb = ''.join(traceback.format_exception(*arg)).strip()
-        # print('%s raised an exception:%s%s' % (name, os.linesep, tb))
-        #set a flag to print nothing else
         return
 
     if not len(_LOCALS[-1]):
-        # appended for each new function call so we have variables local to the current function
-        # _LOCALS.update(set(curr_line_locals.items()))
-        # _LOCALS[-1].update(set(curr_line_locals.items()))
         _LOCALS[-1].update(hashable_curr_line_locals)
-        # prev_line_locals_dict.update(curr_line_locals)
 
-    # print("trace lines locals", curr_line_locals)
     # print_code(frame.f_lineno)
     print_code() # prints the current line about to execute
 
-    # changed_values = update_locals(curr_line_locals)
     # think I should keep the prints elsewhere to increase modularity
     update_stored_vars(curr_line_locals, hashable_curr_line_locals)
 
@@ -185,16 +172,12 @@ def trace_lines(frame, event, arg):
     update_line_code(next_line_executed)
     update_line_num(frame.f_lineno)
 
-    print(*_FORMATTED_LINE)
-    if _ADDITIONAL_LINE:
-        print(*_ADDITIONAL_LINE)
+    # print(*_FORMATTED_LINE)
+    # if _ADDITIONAL_LINE:
+    #     print(*_ADDITIONAL_LINE)
 
     fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
     # if fxn_args.startswith('()'): then no args
-    # if NEED_TO_PRINT_FUNCTION:
-    #     name = frame.f_code.co_name
-    #     print_on_func_call(name, fxn_args)
-    #     NEED_TO_PRINT_FUNCTION = False
 
     if event == 'return':
         # first arg is fxn name
@@ -202,13 +185,11 @@ def trace_lines(frame, event, arg):
 
         # pop the function's variables
         _LOCALS.pop()
-        # JUST_PRINTED_RETURN = True
 
 
 def print_on_return(fxn_name, arg):
-    print('%s returned %r' % (fxn_name, arg))
-    # print(f'{fxn_name} returned {arg}')
-    # print() # was
+    pass
+    # print('%s returned %r' % (fxn_name, arg))
 
 
 def deal_with_lists(curr_line_locals):
@@ -230,14 +211,11 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
     """
     deal_with_lists(curr_line_locals) # convert lists to tuples
 
-    # print("locals", curr_line_locals.items())
     changed_values = {
                 key: curr_line_locals[key]
-                # for key,_ in set(curr_line_locals.items()) - _LOCALS[-1]
                 for key,_ in hashable_curr_line_locals - _LOCALS[-1]
     }
 
-    # print("CHANGED VARS", changed_values)
     print_vars(changed_values)
 
     # need to update since this is a set of pairs so we cant just update the value for this variable
@@ -246,7 +224,6 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
 
     # is this correct ?
     _LOCALS[-1].update(make_locals_hashable(changed_values))
-
     return
 
 def assigned_constant():
@@ -264,34 +241,18 @@ def assigned_constant():
 def print_vars(changed_values):
     global _FORMATTED_LINE
     global _ADDITIONAL_LINE
-    # if NEED_TO_PRINT_FUNCTION:
-    #     # print() # was
-    #     return
 
-    # have_printed = False
     for (var_name, old_value) in _LOCALS[-1]:
-    # for var_name in changed_values.keys():
-    #     old_value = _LOCALS[var_name]
         if var_name in changed_values:
-            # have_printed = True
-            # print(*_FORMATTED_LINE)
-            # print(cf.red(f"  {var_name}={old_value}"), " ──>", cf.green(f"new '{var_name}' value: {changed_values[var_name]}"))
             _ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}")]
-            # print(cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {changed_values[var_name]}"))
-            # print()
 
     if not assigned_constant():
-        # have_printed = True
-        # print(*_FORMATTED_LINE, cf.cyan(" #"), changed_values)
         if len(changed_values) > 1:
             raise ValueError("multiple values changed in one line")
         var_name = tuple(changed_values.keys())[0]
         value = tuple(changed_values.values())[0]
         _FORMATTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
-        # print(*_FORMATTED_LINE, cf.bold(cf.cyan(" #")), f"{var_name} = {value}")
 
-    # if not have_printed:
-    #     print(*_FORMATTED_LINE)
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
 def prev_line_k_v_pairs(changed_values_keys):

@@ -3,6 +3,14 @@ Todo:
     create global set of values
     figure out the diff shit and q's i wrote down
 
+    new csv header:
+        - the time a function was called in case we call the same fxn with same args each time
+            -- ie
+            for _ in [1,2]:
+                fn()
+            has 2 lines in the csv for this loop
+            the new header is a number 1, 2 for each time it is called with the same signature
+
     I think I need to use the dis module to find intermediate fxn return values
 
 convert to file writing:
