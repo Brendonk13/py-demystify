@@ -1,4 +1,5 @@
 import sys
+from types import GeneratorType
 import inspect
 import functools
 import os
@@ -19,6 +20,14 @@ import colorful as cf
         # self.fxn_locals = fxn_locals
         # self.code = code
 
+"""
+Note on classes:
+    def Vector(x, y)
+    ...
+    y = Vector(0, 1)
+-- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals stack
+
+"""
 
 
 
@@ -28,6 +37,12 @@ Todo:
     figure out the diff shit and q's i wrote down
 
     I think I need to use the dis module to find intermediate fxn return values
+
+    INSTEAD OF:
+        y=<generator object complex_fxn.<locals>.<genexpr> at 0x7ffb2d46ae90> ──> new value: <__main__.Vector object at 0x7ffb2d2caa10>
+    WE DO:
+        y=generator --> new value: Vector(0,1)
+    ==> need to remember that signature for an object declaration
 
 convert to file writing:
     - then I can just print things and not have intermediate functions print in order of execution
@@ -62,6 +77,7 @@ def print_on_func_call(fxn_name, fxn_args):
     # add to variable stack
     # pop from function stack when I leave)
     prev_line_locals.append(set())
+    # print("=================== APPEND", prev_line_locals)
     signature = fxn_name + fxn_args
     # print(cf.yellow('... calling'), signature)
     print(cf.yellow(f'... calling {signature}'))
@@ -83,6 +99,12 @@ def once_per_func_tracer(frame, event, arg):
     if event == 'call':
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
         # if fxn_args.startswith('()'): then no args
+        if "dictcomp" in name:
+            # print("===================DICTCOMP")
+            return
+        if "listcomp" in name:
+            # print("===================LISTCOMP")
+            return
         if FIRST_FUNCTION:
             print_on_func_call(name, fxn_args)
             FIRST_FUNCTION = False
@@ -105,6 +127,7 @@ def init_tracer_globals():
     global prev_line_locals
     global prev_line_num
 
+    global SELF_IN_LOCALS
     global PRINTED_LINE
     global ADDITIONAL_LINE
     global JUST_PRINTED_RETURN
@@ -118,6 +141,7 @@ def init_tracer_globals():
     JUST_PRINTED_RETURN = False
     PRINTED_LINE = []
     ADDITIONAL_LINE = []
+    SELF_IN_LOCALS = False
 
     # is a set of var_name, val tuples.
     # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
@@ -182,6 +206,8 @@ def make_locals_hashable(curr_line_locals):
         if isinstance(value, dict):
             # todo: recurse over nested dicts
             hashable_locals.add((var_name, tuple(value.items())))
+        elif isinstance(value, list):
+            hashable_locals.add((var_name, tuple(value)))
         else:
             hashable_locals.add((var_name, value))
     return hashable_locals
@@ -194,6 +220,7 @@ def trace_lines(frame, event, arg):
     global ADDITIONAL_LINE
     global JUST_PRINTED_RETURN
     global NEED_TO_PRINT_FUNCTION
+    global prev_line_locals
 
     # clear last results
     PRINTED_LINE.clear()
@@ -212,10 +239,14 @@ def trace_lines(frame, event, arg):
         #set a flag to print nothing else
         return
 
-    if not len(prev_line_locals[-1]):
+
+    # if not len(prev_line_locals[-1]):
+    if not prev_line_locals[-1]:
         # appended for each new function call so we have variables local to the current function
         # prev_line_locals.update(set(curr_line_locals.items()))
         # prev_line_locals[-1].update(set(curr_line_locals.items()))
+        # print("========== prev_line_locals[-1] is empty")
+        # this happens when new functions are called and all the function args are added to locals at once right below
         prev_line_locals[-1].update(hashable_curr_line_locals)
         # prev_line_locals_dict.update(curr_line_locals)
 
@@ -227,7 +258,14 @@ def trace_lines(frame, event, arg):
     # think I should keep the prints elsewhere to increase modularity
     update_stored_vars(curr_line_locals, hashable_curr_line_locals)
 
-    next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip()
+    # print("prev line code", prev_line_code)
+    skip_lane = "with" in prev_line_code[0]
+    # if "with" in prev_line_code[0]:
+    #     print("============", inspect.getframeinfo(frame), skip_lane)
+        # print(dir(inspect.getframeinfo(frame))
+        # print(dir(frame.f_code), frame.f_code.co_code.decode('utf-8'))
+        # return
+    next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
     # do this at the end since update_locals uses prev_line_code
     update_line_code(next_line_executed)
     update_line_num(frame.f_lineno)
@@ -243,16 +281,23 @@ def trace_lines(frame, event, arg):
         print_on_func_call(name, fxn_args)
         NEED_TO_PRINT_FUNCTION = False
 
+    # print("LOCALS", prev_line_locals[-1])
     if event == 'return':
         # first arg is fxn name
         print_on_return(frame.f_code.co_name, arg)
 
         # pop the function's variables
+        # print("=================== POP ALL", prev_line_locals)
+        # print("=================== POP", prev_line_locals[-1])
         prev_line_locals.pop()
+        # print("=================== POP", prev_line_locals[-1])
         JUST_PRINTED_RETURN = True
 
 
+
 def print_on_return(fxn_name, arg):
+    global SELF_IN_LOCALS
+    SELF_IN_LOCALS = False
     print('%s returned %r' % (fxn_name, arg))
     # print(f'{fxn_name} returned {arg}')
     # print() # was
@@ -275,17 +320,28 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
         will look thru lists and return the values changed in a list as well
         as the indices where they are found.
     """
+    global SELF_IN_LOCALS
     deal_with_lists(curr_line_locals) # convert lists to tuples
 
-    # print("locals", curr_line_locals.items())
     changed_values = {
-                key: curr_line_locals[key]
-                # for key,_ in set(curr_line_locals.items()) - prev_line_locals[-1]
-                for key,_ in hashable_curr_line_locals - prev_line_locals[-1]
+        key: curr_line_locals[key]
+        for key,_
+        in hashable_curr_line_locals - prev_line_locals[-1]
     }
 
-    # print("CHANGED VARS", changed_values)
+
+    # Note on classes:
+    #     def Vector(x, y)
+    #     ...
+    #     y = Vector(0, 1)
+    # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals stack
+    if not SELF_IN_LOCALS and "self" in changed_values:
+        SELF_IN_LOCALS = True
+        return
+
     print_vars(changed_values)
+    # print("hashable, prev_line_locals", hashable_curr_line_locals, prev_line_locals[-1])
+    # print("CHANGED VARS", changed_values)
 
     # need to update since this is a set of pairs so we cant just update the value for this variable
     for key_val_pair in prev_line_k_v_pairs(changed_values):
@@ -294,10 +350,10 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
     # is this correct ?
     prev_line_locals[-1].update(make_locals_hashable(changed_values))
 
-    return
 
 def assigned_constant():
     assignment = prev_line_code[0].split('=')[-1].strip()
+    # print("assignment", assignment)
 
     # todo make this find dicts, differentiate between {1:1} and {1:1, **other_dict}
     if (assignment.isdigit()
@@ -330,11 +386,27 @@ def print_vars(changed_values):
     if not assigned_constant():
         # have_printed = True
         # print(*PRINTED_LINE, cf.cyan(" #"), changed_values)
+        # print("prev_line_locals", prev_line_locals[-1])
+        assignment = prev_line_code[0].split('=')[-1].strip()
         if len(changed_values) > 1:
             raise ValueError("multiple values changed in one line")
+
+        # assuming no spaces means its getting assigned a variable such as self.x = x
+        if len(changed_values) == 0 and len(assignment.split()) == 1 and "(" not in assignment:
+            # print("CHANGED, assignment", changed_values, assignment)
+            var_name = assignment
+            value = [value for key,value in prev_line_locals[-1] if key == var_name][0]
+            # print("=========================")
+            # print("CHANGED", changed_values)
+
+        # ie: if not x:
+        if not changed_values:
+            return
         var_name = tuple(changed_values.keys())[0]
         value = tuple(changed_values.values())[0]
-        PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+        if not isinstance(value, GeneratorType):
+        # if "generator object" not in value:
+            PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
         # print(*PRINTED_LINE, cf.bold(cf.cyan(" #")), f"{var_name} = {value}")
 
     # if not have_printed:

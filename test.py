@@ -1,12 +1,33 @@
 from tracer import trace
+import os
+
+class Vector:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        # self.x, self.y = x, y
+
+
+def context_manager():
+    x = 29
+    with os.scandir(".") as entries:
+        for entry in entries:
+            x = 10
 
 def complex_fxn():
     x = 6666
+    y = [x for x in range(5)]
+    y = {k: v for k, v in zip(["one", "two"], (1, 2))}
+    #<generator object complex_fxn.<locals>.<genexpr> at 0x7f1ae9ba2dc0>
+    y = (r for r in range(5))
+    y = Vector(0, 1)
+    # context_manager()
     if not x:
-        pass
+        return
     else:
         x += 1
     y = "adsd"
+    print("hello")
     return x
 
 
@@ -25,8 +46,11 @@ def test_function_call(input_arg):
     thirdVar = string * 2
 
     y = 5
-    y = simple_fxn()
-    return simple_fxn()
+    # y = simple_fxn()
+    # return simple_fxn()
+    y = complex_fxn()
+    # return complex_fxn()
+    return None
 
 
 @trace
