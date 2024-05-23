@@ -14,14 +14,22 @@ def context_manager():
         for entry in entries:
             x = 10
 
+def loop_fn(end_range):
+    # x = 1
+    for i in range(end_range):
+    # for i in list(range(end_range)):
+        x = i
+
+
 def complex_fxn():
     x = 6666
-    y = [x for x in range(5)]
-    y = {k: v for k, v in zip(["one", "two"], (1, 2))}
-    #<generator object complex_fxn.<locals>.<genexpr> at 0x7f1ae9ba2dc0>
-    y = (r for r in range(5))
-    y = Vector(0, 1)
+    #y = [x for x in range(5)]
+    #y = {k: v for k, v in zip(["one", "two"], (1, 2))}
+    ##<generator object complex_fxn.<locals>.<genexpr> at 0x7f1ae9ba2dc0>
+    #y = (r for r in range(5))
+    #y = Vector(0, 1)
     # context_manager()
+    y = loop_fn(2)
     if not x:
         return
     else:
@@ -45,10 +53,11 @@ def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
 
-    y = 5
+    y = 2
+    y = loop_fn(y)
     # y = simple_fxn()
     # return simple_fxn()
-    y = complex_fxn()
+    # y = complex_fxn()
     # return complex_fxn()
     return None
 

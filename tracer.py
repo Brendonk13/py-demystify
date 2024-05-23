@@ -31,10 +31,28 @@ Note on classes:
 
 
 
+
 """
 Todo:
-    create global set of values
-    figure out the diff shit and q's i wrote down
+    - make loops work
+        - for some reason we are adding loop variables too early when they are the first line in a function
+        - problem is we are returning when we see a loop 
+    - make if statements do replacement ie: if x: ==> if 10:
+        -- what about if some_dict.get("key"):
+    test: [] += [a]
+    - return x, y, z()
+    test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
+    - object properties changing
+        - del some_dict[key]
+        - object.some_value = 10
+    - y = {**other_dict, ...}
+    - ASYNC
+    - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
+        -- this should be a flag "eval_all_branch_paths"
+    - add more substitution logic for function calls and such
+    ie: Vector(x,y) shows Vector(0, 1)
+    -- same for loops -- maybe not possible though
+
 
     I think I need to use the dis module to find intermediate fxn return values
 
@@ -100,10 +118,10 @@ def once_per_func_tracer(frame, event, arg):
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
         # if fxn_args.startswith('()'): then no args
         if "dictcomp" in name:
-            # print("===================DICTCOMP")
+            print("DICTCOMP")
             return
         if "listcomp" in name:
-            # print("===================LISTCOMP")
+            print("LISTCOMP")
             return
         if FIRST_FUNCTION:
             print_on_func_call(name, fxn_args)
@@ -117,6 +135,7 @@ def once_per_func_tracer(frame, event, arg):
         # print(inspect.getcomments(frame.f_code))
         # comments will need to be read from the file along with the lines they appear in
 
+    print("=============== no tracer returned kinda")
     return once_per_func_tracer
 
 
@@ -173,7 +192,7 @@ def trace(function):
     return setup_tracing
 
 
-def print_code():
+def extract_original_code():
     global JUST_PRINTED_RETURN
     global PRINTED_LINE
     if JUST_PRINTED_RETURN:
@@ -245,14 +264,14 @@ def trace_lines(frame, event, arg):
         # appended for each new function call so we have variables local to the current function
         # prev_line_locals.update(set(curr_line_locals.items()))
         # prev_line_locals[-1].update(set(curr_line_locals.items()))
-        # print("========== prev_line_locals[-1] is empty")
+        print("========== prev_line_locals[-1] is empty, new:", hashable_curr_line_locals)
         # this happens when new functions are called and all the function args are added to locals at once right below
         prev_line_locals[-1].update(hashable_curr_line_locals)
         # prev_line_locals_dict.update(curr_line_locals)
 
     # print("trace lines locals", curr_line_locals)
     # print_code(frame.f_lineno)
-    print_code() # prints the current line about to execute
+    extract_original_code() # prints the current line about to execute
 
     # changed_values = update_locals(curr_line_locals)
     # think I should keep the prints elsewhere to increase modularity
@@ -265,10 +284,6 @@ def trace_lines(frame, event, arg):
         # print(dir(inspect.getframeinfo(frame))
         # print(dir(frame.f_code), frame.f_code.co_code.decode('utf-8'))
         # return
-    next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
-    # do this at the end since update_locals uses prev_line_code
-    update_line_code(next_line_executed)
-    update_line_num(frame.f_lineno)
 
     print(*PRINTED_LINE)
     if ADDITIONAL_LINE:
@@ -279,6 +294,9 @@ def trace_lines(frame, event, arg):
     if NEED_TO_PRINT_FUNCTION:
         name = frame.f_code.co_name
         print_on_func_call(name, fxn_args)
+        # here need to add curr_line_locals ???
+        print("curr_line_locals", hashable_curr_line_locals)
+        prev_line_locals[-1].update(hashable_curr_line_locals)
         NEED_TO_PRINT_FUNCTION = False
 
     # print("LOCALS", prev_line_locals[-1])
@@ -292,6 +310,13 @@ def trace_lines(frame, event, arg):
         prev_line_locals.pop()
         # print("=================== POP", prev_line_locals[-1])
         JUST_PRINTED_RETURN = True
+
+    if len(prev_line_locals):
+        print("locals", prev_line_locals[-1])
+    next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+    # do this at the end since update_locals uses prev_line_code
+    update_line_code(next_line_executed)
+    update_line_num(frame.f_lineno)
 
 
 
@@ -324,7 +349,7 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
     deal_with_lists(curr_line_locals) # convert lists to tuples
 
     changed_values = {
-        key: curr_line_locals[key]
+        key: curr_line_locals[key] # now the key stores the new value
         for key,_
         in hashable_curr_line_locals - prev_line_locals[-1]
     }
@@ -337,9 +362,14 @@ def update_stored_vars(curr_line_locals, hashable_curr_line_locals):
     # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals stack
     if not SELF_IN_LOCALS and "self" in changed_values:
         SELF_IN_LOCALS = True
+        print("============== self in locals, returning...")
         return
 
-    print_vars(changed_values)
+    if NEED_TO_PRINT_FUNCTION:
+        print("about to return, curr locals", curr_line_locals)
+        # for ==> def loop_fn(end): for i in range(end): x = i
+        # curr_line_locals is currently the function arg, and not the loop arg (i)
+    gather_additional_data(changed_values)
     # print("hashable, prev_line_locals", hashable_curr_line_locals, prev_line_locals[-1])
     # print("CHANGED VARS", changed_values)
 
@@ -364,11 +394,13 @@ def assigned_constant():
     return False
 
 
-def print_vars(changed_values):
+def gather_additional_data(changed_values):
     global PRINTED_LINE
     global ADDITIONAL_LINE
     if NEED_TO_PRINT_FUNCTION:
-        # print() # was
+        # here, we return BEFORE entering a new function
+        print("need to print function, returning...")
+        # print("...locals", prev_line_locals[-1])
         return
 
     # have_printed = False
