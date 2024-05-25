@@ -7,6 +7,9 @@ class Vector:
         self.y = y
         # self.x, self.y = x, y
 
+    def __add__(self, other):
+        return Vector(self.x + other.x, self.y + other.y)
+
 
 def context_manager():
     x = 29
@@ -53,13 +56,34 @@ def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
 
-    y = 2
-    y = loop_fn(y)
+    if 1:
+        x = 1
+    elif 2:
+        x = 1
+    else:
+        x = 1
+
+    y = Vector(0, 1)
+    # y.x = 99
+    # y.x = 10
+    y = y + Vector(0, 1)
+
+    # y = {"one": 1, "two": 2}
+    # del y["two"]
+    # y["two"] = 22
+    # y = {**{"some": "dict"}, **y}
+
+    y = [2]
+    y += ["a"]
+    # if y + 1 * 3:
+    #     y = 3
+    # y = loop_fn(y)
     # y = simple_fxn()
     # return simple_fxn()
     # y = complex_fxn()
     # return complex_fxn()
-    return None
+    return y[-1]
+    # return y[-1], simple_fxn()
 
 
 @trace

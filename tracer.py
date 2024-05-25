@@ -33,19 +33,27 @@ Note on classes:
 
 
 """
-Todo:
-    - make loops work
-        - for some reason we are adding loop variables too early when they are the first line in a function
-        - problem is we are returning when we see a loop 
+NOT WORKING:
     - make if statements do replacement ie: if x: ==> if 10:
         -- what about if some_dict.get("key"):
+        -- and return y[-1]
+        -- the python side of things may need to run "exec" to get these values however this may not be safe to do
+        test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
+    - object properties changing
+        - object.some_value = 10
+
+Done:
+    - make loops work
     test: [] += [a]
     - return x, y, z()
-    test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
-    - object properties changing
-        - del some_dict[key]
-        - object.some_value = 10
-    - y = {**other_dict, ...}
+    - del some_dict[key]
+    some_dict[key] = 2
+
+    *  63 │   y = {**{"some": "dict"}, **y}  # y = {'some': 'dict', 'one': 1, 'two': 22}
+        y=(('one', 1), ('two', 22)) ──> new value: {'some': 'dict', 'one': 1, 'two': 22}
+
+
+Todo:
     - ASYNC
     - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
         -- this should be a flag "eval_all_branch_paths"
@@ -295,7 +303,7 @@ def trace_lines(frame, event, arg):
         name = frame.f_code.co_name
         print_on_func_call(name, fxn_args)
         # here need to add curr_line_locals ???
-        print("curr_line_locals", hashable_curr_line_locals)
+        # print("curr_line_locals", hashable_curr_line_locals)
         prev_line_locals[-1].update(hashable_curr_line_locals)
         NEED_TO_PRINT_FUNCTION = False
 
@@ -311,8 +319,8 @@ def trace_lines(frame, event, arg):
         # print("=================== POP", prev_line_locals[-1])
         JUST_PRINTED_RETURN = True
 
-    if len(prev_line_locals):
-        print("locals", prev_line_locals[-1])
+    # if len(prev_line_locals):
+    #     print("locals", prev_line_locals[-1])
     next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
     # do this at the end since update_locals uses prev_line_code
     update_line_code(next_line_executed)
