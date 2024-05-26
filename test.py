@@ -53,6 +53,12 @@ def simple_fxn():
     return x
 
 @trace
+def test_multiple_assignments(input_arg):
+    x = 10
+    a, b = "a", "b"
+    a, b = "a", input_arg
+
+@trace
 def test_custom_objects(input_arg):
     input_arg = 321
     vect = Vector(0, 1)
@@ -137,3 +143,4 @@ if __name__ == "__main__":
     # idk = test_dict(666)
     # idk = test_function_call(666)
     idk = test_custom_objects(123)
+    # test_multiple_assignments(123)

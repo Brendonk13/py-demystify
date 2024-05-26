@@ -59,6 +59,7 @@ Done:
 
 
 Todo:
+    - make strings have quotes around them ie: instead of b=b --> ... HAVE: b='b' --> ...
     - ASYNC
     - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
         -- this should be a flag "eval_all_branch_paths"
@@ -372,7 +373,7 @@ def add_object_fields_to_locals(curr_line_locals_dict):
 def update_stored_vars(curr_line_locals_dict):
     """ need to make lists hashable somehow for storing lists in the set.
         maybe I store lists differently
-        and give the option to search lists
+        and give the option to search lists for if a certain value appears
         could eventually make it so u pass a parameter to @trace which
         will look thru lists and return the values changed in a list as well
         as the indices where they are found.
@@ -380,12 +381,10 @@ def update_stored_vars(curr_line_locals_dict):
     global SELF_IN_LOCALS
 
     curr_line_locals_set, curr_line_objects = add_object_fields_to_locals(curr_line_locals_dict)
-    # new objects should be new and not "changed" ????
     new_variables = curr_line_locals_set - prev_line_locals_stack[-1]
 
     # Note: need curr_line_locals_dict since it is a dict and curr_line_locals_set is a set
     changed_values = {
-        # key: curr_line_locals_dict[key] # now the key stores the new value
         key: curr_line_locals_dict[key] # now the key stores the new value
         for key,_
         in new_variables
@@ -400,16 +399,12 @@ def update_stored_vars(curr_line_locals_dict):
         SELF_IN_LOCALS = True
         print("============== self in locals, returning...")
         return
-
-    if NEED_TO_PRINT_FUNCTION:
-        print("about to return, curr locals", curr_line_locals_dict)
-        # for ==> def loop_fn(end): for i in range(end): x = i
-        # curr_line_locals_dict is currently the function arg, and not the loop arg (i)
-
-
     gather_additional_data(changed_values, curr_line_objects)
     replace_old_values(changed_values)
 
+#     if NEED_TO_PRINT_FUNCTION:
+#         print("about to return, curr locals", curr_line_locals_dict)
+#         return
 
 
 def replace_old_values(changed_values):
@@ -420,6 +415,7 @@ def replace_old_values(changed_values):
 
     # replace old  old values according to changed_values
     prev_line_locals_stack[-1].update(convert_to_set(changed_values.items()))
+
 
 def assigned_constant():
     expression = prev_line_code[0].split('=')[-1].strip()
@@ -443,8 +439,7 @@ def gather_additional_data(changed_values, curr_line_objects):
     # add interpreted comment to the current line
     # ie show: * 123 | x = y  # x = 10
     if not assigned_constant():
-        expression = prev_line_code[0].split('=')[-1].strip()
-        interpret_expression(changed_values, curr_line_objects, expression)
+        interpret_expression(changed_values, curr_line_objects)
 
     for (var_name, old_value) in prev_line_locals_stack[-1]:
         if var_name not in changed_values:
@@ -455,8 +450,12 @@ def gather_additional_data(changed_values, curr_line_objects):
             var_name = var_name[9:]
         ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {new_value}")]
 
-def interpret_expression(changed_values, curr_line_objects, expression):
+
+def interpret_expression(changed_values, curr_line_objects):
     global PRINTED_LINE
+    # expression = prev_line_code[0].split('=')[-1].strip()
+    assignment, expression = (code.strip() for code in prev_line_code[0].split('='))
+    print(f"assignment: {assignment}, expression: {expression}")
     # todo: maybe dont need this condition anymore, print prev_line_locals and see if it has both vect and _TRACKED_vect
     if len(changed_values) > 1 and not curr_line_objects:
         raise ValueError("multiple values changed in one line")
@@ -475,9 +474,13 @@ def interpret_expression(changed_values, curr_line_objects, expression):
     # print("changed", changed_values)
     # print("curr_line_objects", curr_line_objects)
     if curr_line_objects and len(changed_values) > 1:
+        # this conditional triggered when a new object is created (here we have obj: Object, and our own mapping: _TRACKED_obj: ('x': 1), ('y': 2)
+        # NOTE: probably does not handle multiple assignments in one row
         var_name = tuple(key for key in changed_values.keys() if key.startswith("_TRACKED"))[0]
         value = changed_values[var_name]
+        # print("TWO changed")
     elif len(changed_values) == 1:
+        # print("one changed")
         # value = tuple(val for val in changed_values.values() if key.startswith("_TRACKED"))
         var_name = tuple(changed_values.keys())[0]
         value = tuple(changed_values.values())[0]
@@ -487,7 +490,16 @@ def interpret_expression(changed_values, curr_line_objects, expression):
     # if "generator object" not in value:
         if var_name.startswith("_TRACKED"):
             var_name = var_name[9:]
+        assignment_field_chain = assignment.split(".")
+        object_field_assigned = len(assignment_field_chain) == 2
+        if len(assignment_field_chain) > 2:
+            raise ValueError(f"Unexpected chained object assignment to variable: {assignment}")
+        if object_field_assigned:
+            obj, field = assignment_field_chain
+            var_name = assignment
+            field, value = [val for val in value if val[0] == field][0]
         PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
 def prev_line_k_v_pairs(changed_values_keys):
