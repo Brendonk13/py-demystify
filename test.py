@@ -2,9 +2,10 @@ from tracer import trace
 import os
 
 class Vector:
-    def __init__(self, x, y):
+    def __init__(self, x, y, z=None):
         self.x = x
         self.y = y
+        # self._private = z
         # self.x, self.y = x, y
 
     def __add__(self, other):
@@ -52,6 +53,15 @@ def simple_fxn():
     return x
 
 @trace
+def test_custom_objects(input_arg):
+    input_arg = 321
+    vect = Vector(0, 1)
+    vect.x = 22
+    vect.x = input_arg
+    # vect = vect + Vector(0, 1)
+    return vect.x
+
+@trace
 def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
@@ -63,10 +73,10 @@ def test_function_call(input_arg):
     else:
         x = 1
 
-    y = Vector(0, 1)
-    # y.x = 99
-    # y.x = 10
-    y = y + Vector(0, 1)
+    # vect = Vector(0, 1)
+    # vect.x = 22
+    # vect.x = 33
+    # # vect = vect + Vector(0, 1)
 
     # y = {"one": 1, "two": 2}
     # del y["two"]
@@ -125,4 +135,5 @@ def test_dict(input_arg):
 if __name__ == "__main__":
     # call the function
     # idk = test_dict(666)
-    idk = test_function_call(666)
+    # idk = test_function_call(666)
+    idk = test_custom_objects(123)
