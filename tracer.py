@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 from typing import Any
 from types import GeneratorType
 import inspect
@@ -292,7 +293,7 @@ def trace_lines(frame, event, arg):
     PRINTED_LINE.clear()
     ADDITIONAL_LINE.clear()
 
-    curr_line_locals_dict = frame.f_locals
+    curr_line_locals_dict = frame.f_locals #.copy()
     # curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
     # print("CURR LOCALS", curr_line_locals_dict)
     if event == 'exception':
@@ -314,7 +315,8 @@ def trace_lines(frame, event, arg):
         curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
         print("========== prev_line_locals[-1] is empty, new:", curr_line_locals_set)
         prev_line_locals_stack[-1].update(curr_line_locals_set)
-        prev_line_locals_stack_dict[-1] = curr_line_locals_dict.copy()
+    # if not prev_line_locals_stack_dict[-1]:
+        prev_line_locals_stack_dict[-1].update(deepcopy(curr_line_locals_dict))
 
     # prints the current line about to execute
     extract_original_code()
@@ -356,7 +358,7 @@ def add_new_function_args_to_locals(frame, curr_line_locals_dict):
     print_on_func_call(name, fxn_args)
     curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
     prev_line_locals_stack[-1].update(curr_line_locals_set)
-    prev_line_locals_stack_dict[-1] = curr_line_locals_dict.copy()
+    prev_line_locals_stack_dict[-1].update(deepcopy(curr_line_locals_dict))
     # print("new function, just made locals:", prev_line_locals_stack[-1])
 
 
@@ -385,7 +387,8 @@ def print_on_return(fxn_name, arg):
 def add_object_fields_to_locals(curr_line_locals_dict):
     # curr_line_objects = convert_to_set(
     curr_line_objects = [
-        (f"_TRACKED_{name}", vars(value))
+        # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
+        (f"_TRACKED_{name}", deepcopy(vars(value)))
         for name,value
         in curr_line_locals_dict.items()
         # in prev_line_locals_stack[-1]
@@ -451,14 +454,16 @@ def update_stored_vars(curr_line_locals_dict):
 def replace_old_values(changed_values):
     # need to update since this is a set of pairs so we cant just update the value for this variable
     # remove old values according to changed_values
+    # they are different here, the dict has the new values already
     for key_val_pair in prev_line_k_v_pairs(changed_values):
         prev_line_locals_stack[-1].remove(key_val_pair)
         del prev_line_locals_stack_dict[-1][key_val_pair[0]]
 
 
-    # replace old  old values according to changed_values
-    prev_line_locals_stack[-1].update(convert_to_set(changed_values.items()))
-    prev_line_locals_stack_dict[-1] = prev_line_locals_stack_dict[-1] | changed_values
+    # replace old values according to changed_values
+    set_stuff = convert_to_set(changed_values.items())
+    prev_line_locals_stack[-1].update(set_stuff)
+    prev_line_locals_stack_dict[-1].update(changed_values)
 
 
 def assigned_constant():
@@ -490,12 +495,9 @@ def gather_additional_data(changed_values, curr_line_objects):
     if not assigned_constant():
         interpret_expression(changed_values, curr_line_objects)
 
-    # for (var_name, old_value) in prev_line_locals_stack[-1]:
     for (var_name, old_value) in prev_line_locals_stack_dict[-1].items():
         if var_name not in changed_values:
             continue
-        # old_value = prev_line_locals_stack_dict[-1][var_name]
-        # new_value
         new_value = changed_values[var_name]
         if var_name.startswith("_TRACKED"):
             # remove prefix: _TRACKED
@@ -592,6 +594,9 @@ def extract_variable_assignments(changed_values, curr_line_objects):
         # value is expected to be a list of pairs (field_name, field_value)
         # we know the field that changed and must extract that field_value
         # _, value = [val for val in value if val[0] == field][0]
+
+    # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
+    # o.w just print only the changed fields
     PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
     # var_names.append(var_name)
     # values.append(value)
@@ -618,6 +623,7 @@ def interpret_expression(changed_values, curr_line_objects):
         # var_names, values = [], []
         # extract_variable_assignments(changed_values, curr_line_objects, var_names, values)
         extract_variable_assignments(changed_values, curr_line_objects)
+        # for each variable change, store: assigned_var_name, 
         # PRINTED_LINE += [cf.bold(cf.cyan(" #"))]
         # for var_name, value in zip(var_names, values):
         #     PRINTED_LINE += [f" {var_name} = {value}"]
