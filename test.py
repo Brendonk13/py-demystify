@@ -55,9 +55,12 @@ def simple_fxn():
 
 @trace
 def test_multiple_assignments(input_arg):
+    vect = Vector(0, 1)
     x = 10
-    a, b = "a", x
-    a, b = "a", input_arg
+    # vect.x, b = 99, vect.x
+    vect.x, b = 99, x
+    # vect.x = x
+    # a, b = "a", input_arg
 
 @trace
 def test_custom_objects(input_arg):
@@ -148,5 +151,5 @@ if __name__ == "__main__":
     # call the function
     # idk = test_dict(666)
     # idk = test_function_call(666)
-    idk = test_custom_objects(123)
-    # test_multiple_assignments(123)
+    # idk = test_custom_objects(123)
+    test_multiple_assignments(123)

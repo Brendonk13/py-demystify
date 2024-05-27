@@ -177,6 +177,7 @@ def init_tracer_globals():
     global prev_line_locals_stack
     global prev_line_num
 
+    global OBJECT_PREFIX
     global SELF_IN_LOCALS
     global PRINTED_LINE
     global ADDITIONAL_LINE
@@ -193,6 +194,7 @@ def init_tracer_globals():
     ADDITIONAL_LINE = []
     SELF_IN_LOCALS = False
 
+    OBJECT_PREFIX = "_TRACKED_"
     # is a set of var_name, val tuples.
     # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
     # prev_line_locals_stack = set()
@@ -239,6 +241,7 @@ def extract_original_code():
 
 def update_line_code(next_line_executed):
     prev_line_code[0] = next_line_executed
+    # print("new prev line code", prev_line_code[0])
 
 def update_line_num(line_num):
     prev_line_num[0] = line_num
@@ -369,45 +372,23 @@ def print_on_return(fxn_name, arg):
     print(f"{cf.cyan(f'{fxn_name} returned')} {arg}")
 
 
-# def make_dict_hashable(locals):
-#     # dont need this since I have a set which is hashable
-#     locals_cp = locals.copy()
-#     for key, value in locals.items():
-#         # list's are unhashable so store as a tuple for now,
-#         # can probs make a hashable list wrapper class later on.
-#         # big inneficiency doing this err time.
-#         if isinstance(value, list):
-#             locals_cp[key] = tuple(value)
-#         if isinstance(value, dict):
-#             # todo: recurse over nested dicts
-#             locals_cp[key] = tuple(value.items())
-#             # hashable_locals.add((var_name, tuple(value.items())))
-#     return locals_cp
-
 def add_object_fields_to_locals(curr_line_locals_dict):
+    global OBJECT_PREFIX
     # curr_line_objects = convert_to_set(
     curr_line_objects = [
         # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
-        (f"_TRACKED_{name}", deepcopy(vars(value)))
+        (f"{OBJECT_PREFIX}{name}", deepcopy(vars(value)))
         for name,value
         in curr_line_locals_dict.items()
         # in prev_line_locals_stack[-1]
         if is_custom_object(name, value)
     ]
 
-    # add the objects to the hashset
-    # curr_line_locals_set.update(curr_line_objects)
-
     # for each object, extract its fields (using vars) so we can track when their fields change
     for tracked_name, field_values in curr_line_objects:
         curr_line_locals_dict[tracked_name] = field_values
 
-    # must return new dict to avoid changing the variables for the code we are tracing
-
-    # why am I making this hashable then again when I turn it into a set
-    # curr_line_locals_dict = make_dict_hashable(curr_line_locals_dict) # convert lists to tuples
     curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
-    # print("dict", curr_line_locals_dict, "set", curr_line_locals_set)
     return curr_line_locals_set, curr_line_locals_dict, curr_line_objects
 
 
@@ -446,24 +427,7 @@ def update_stored_vars(curr_line_locals_dict):
     gather_additional_data(changed_values, curr_line_objects)
     replace_old_values(changed_values)
 
-#     if NEED_TO_PRINT_FUNCTION:
-#         print("about to return, curr locals", curr_line_locals_dict)
-#         return
 
-
-def replace_old_values(changed_values):
-    # need to update since this is a set of pairs so we cant just update the value for this variable
-    # remove old values according to changed_values
-    # they are different here, the dict has the new values already
-    for key_val_pair in prev_line_k_v_pairs(changed_values):
-        prev_line_locals_stack[-1].remove(key_val_pair)
-        del prev_line_locals_stack_dict[-1][key_val_pair[0]]
-
-
-    # replace old values according to changed_values
-    set_stuff = convert_to_set(changed_values.items())
-    prev_line_locals_stack[-1].update(set_stuff)
-    prev_line_locals_stack_dict[-1].update(changed_values)
 
 
 def assigned_constant():
@@ -499,7 +463,7 @@ def gather_additional_data(changed_values, curr_line_objects):
         if var_name not in changed_values:
             continue
         new_value = changed_values[var_name]
-        if var_name.startswith("_TRACKED"):
+        if var_name.startswith(OBJECT_PREFIX):
             # remove prefix: _TRACKED
             var_name = var_name[9:]
         ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {new_value}")]
@@ -520,8 +484,18 @@ def extract_variable_assignments(changed_values, curr_line_objects):
     global PRINTED_LINE
     value: Any = ""
     var_name = ""
+
+    # if curr_line_objects and len(changed_values) == 2:
+    #     print("FIREXT", len(list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))) == 1)
+    #     z = filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items())
+    #     f = [is_custom_object(var_name, value) and not var_name.startswith(OBJECT_PREFIX) for var_name, value in changed_values.items()]
+    #     s = all(is_custom_object(var_name, value) or var_name.start for var_name, value in changed_values.items())
+    #     print("changed_values", changed_values, "objects", curr_line_objects, "first", f, "seceond", s, "z", len(list(z)))
+
+        # if is_custom_object(name, value) and not name.startswith(OBJECT_PREFIX):
     # print("prev_line_code", prev_line_code)
     assignment, expression = [code.strip() for code in prev_line_code[0].split('=')]
+    # print("====== assignment", assignment, "changed_values", changed_values)
     # assignment, expression = code
     # todo: maybe dont need this condition anymore, print prev_line_locals and see if it has both vect and _TRACKED_vect
     if len(changed_values) > 1 and not curr_line_objects and "," not in assignment:
@@ -537,71 +511,112 @@ def extract_variable_assignments(changed_values, curr_line_objects):
         # this happens for self.y = y
         # THIS IS BECAUSE WE DONT CHECK FOR CHANGES TO SELF CURRENTLY THEREFORE CHANGED_VALUES = {}
         var_name = expression
-        # print("var_name",  var_name, "=====locals", prev_line_locals_stack[-1], "=====changed", changed_values)
-        # print("===================================================================")
         value = prev_line_locals_stack_dict[-1][var_name]
-        # value = [value for key,value in prev_line_locals_stack[-1] if key == var_name][0]
-        # print("var_name", var_name, "value",  value)
-        PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
-        # var_names.append(var_name)
-        # values.append(value)
-        return var_name, value
+        # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+        return [var_name], [value]
 
-    # ie: if not x:
-    # if not changed_values:
-    #     return None, None
-    # print("changed", changed_values)
-    # print("curr_line_objects", curr_line_objects)
-    # if curr_line_objects and len(changed_values) > 1:
-    elif curr_line_objects and len(changed_values) == 2:
+    # elif curr_line_objects and len(changed_values) == 2 and any("object" in str(value)for value in changed_values.values()):
+        # and one of these objects is not OBJECT_PREFIX
+    elif (
+            curr_line_objects
+            and len(changed_values) == 2
+            # make sure both changed_values are objects, and that one is the raw object pointer
+            and len(list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))) == 1
+            # and all(is_custom_object(var_name, value) for var_name, value in changed_values.items())
+        ):
         # this conditional triggered when a new object is created (here we have obj: Object, and our own mapping: _TRACKED_obj: ('x': 1), ('y': 2)
         # NOTE: probably does not handle multiple assignments in one row
         # NOTE: THIS MAY BE TRIGGERED FOR VECT.X, VECT.Y = X, Y
-        var_name = tuple(key for key in changed_values.keys() if key.startswith("_TRACKED"))[0]
+        var_name = tuple(key for key in changed_values.keys() if key.startswith(OBJECT_PREFIX))[0]
         value = changed_values[var_name]
     elif len(changed_values) == 1:
         # if there is only one changed value, just show the end value, no intermediates
-        var_name = tuple(changed_values.keys())[0]
-        value = tuple(changed_values.values())[0]
+        var_name, value = tuple(changed_values.items())[0]
     elif "," in assignment and len(assignment.split(",")) == len(changed_values) == len(expression.split(",")):
         # multiple assignment line
         assignments = [a.strip() for a in assignment.split(",")]
         expressions = [e.strip() for e in expression.split(",")]
-        print(f"assignments: {assignments}, expressions: {expressions}")
+        print(f"changed_values: {changed_values}, assignments: {assignments}, expressions: {expressions}")
         # dont make it recursive -- just move the object field_assigned stuff to a diff function and call it in the loop
         # in the future
-        # for assignment_, expression_ in zip(assignments, expressions):
+        var_names, values = [], []
+        for assignment_, expression_ in zip(assignments, expressions):
             # create changed_values from assignment, expression
-            # var_name, value = extract_variable_assignments({})
+
+            # what does this function return .....
+            # assignment = "x, y", assignment_ = "x" then "y"
+
+            # -- need to find actual var_name from assignment_//expression_ and then send the correct thing from changed_values
+# changed_values: {'_TRACKED_vect': {'x': 99, 'y': 1}, 'b': 10}, assignments: ['vect.x', 'b'], expressions: ['99', 'x']
+            # assignment: vect.x, expression: 99 , var_name: vect.x, value: {'_TRACKED_vect': {'x': 99, 'y': 1}, 'b': 10}
+
+            # should I iterate over assignment_.split(".") instead of var_name ??? then have the last arg always be changed_values
+            var_name, value = handle_object_expression(assignment_, expression_, assignment_, changed_values)
+
+            var_names.append(var_name)
+            values.append(value)
+            if assignment_ == "b":
+                print("assignment_", assignment_, " == expression_", expression_, " == name:", var_name, "value: ", value, "changed_values", changed_values)
+        return var_names, values
         # extract_variable_assignments(changed_values, curr_line_objects, 
         # fuck with PRINTED_LINE here instead of making this too general
     else:
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
 
+
+    var_name, value = handle_object_expression(assignment, expression, var_name, value)
+    # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
+    # o.w just print only the changed fields
+    # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+    return [var_name], [value]
+
+
+def handle_object_expression(assignment, expression, var_name, value):
+# def handle_object_expression(assignment, expression, changed_values):
+    # need to add a field for the actual value to make it clear for when value is the string "vect.x"
+    """
+        assignment ex.) "vect.x"  || "x"
+        var_name   ex.) "vect"    || "x"
+        value      ex.) {"x": 12} || "x"
+
+        -- returns var_name ex.) "vect.x" || "x"
+        -- returns value    ex.) 12       || "x"
+        if its not an object assignment then we return the input
+        if its an object, then we get its value from value by using the field name
+    """
+    print("assignment", assignment, ", expression", expression, ", var_name", var_name, ", value", value)
+    # todo: do substitutions for RHS
     # if "generator object" not in value:
-    if var_name.startswith("_TRACKED"):
+    if var_name.startswith(OBJECT_PREFIX):
         var_name = var_name[9:]
     assignment_field_chain = assignment.split(".")
+    expression_field_chain = expression.split(".")
     object_field_assigned = len(assignment_field_chain) == 2
+    object_field_in_expression = len(expression_field_chain) == 2
+    # value
     if len(assignment_field_chain) > 2:
-        raise ValueError(f"Unexpected chained object assignment to variable: {assignment}")
+        raise ValueError(f"Unexpected chained object assignment to variable: {assignment} = {expression}")
+    if len(expression_field_chain) > 2:
+        raise ValueError(f"Unexpected chained object variable in expression: {assignment} = {expression}")
+
     if object_field_assigned:
     # if not isinstance(value, GeneratorType):
         obj, field = assignment_field_chain
+
+        # assignment ex.) "vect.x", var_name ex.) "vect"
         var_name = assignment
         value = value[field]
         # print("object var_name", var_name, "value", value, "obj", obj, "field", field)
         # value is expected to be a list of pairs (field_name, field_value)
         # we know the field that changed and must extract that field_value
         # _, value = [val for val in value if val[0] == field][0]
+    if object_field_in_expression:
+        obj, field = expression_field_chain
 
-    # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
-    # o.w just print only the changed fields
-    PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
-    # var_names.append(var_name)
-    # values.append(value)
+        # do I need to change the var_name ?????
+
     return var_name, value
-    # return None, None
+
 
 def interpret_expression(changed_values, curr_line_objects):
     global PRINTED_LINE
@@ -622,13 +637,12 @@ def interpret_expression(changed_values, curr_line_objects):
         assignment, expression = code
         # var_names, values = [], []
         # extract_variable_assignments(changed_values, curr_line_objects, var_names, values)
-        extract_variable_assignments(changed_values, curr_line_objects)
+        var_names, values = extract_variable_assignments(changed_values, curr_line_objects)
+        print("OUTPUT var_names: ", var_names, "values:", values)
         # for each variable change, store: assigned_var_name, 
-        # PRINTED_LINE += [cf.bold(cf.cyan(" #"))]
-        # for var_name, value in zip(var_names, values):
-        #     PRINTED_LINE += [f" {var_name} = {value}"]
-
-
+        PRINTED_LINE += [cf.bold(cf.cyan(" #"))]
+        for var_name, value in zip(var_names, values):
+            PRINTED_LINE += [f" {var_name} = {value}"]
 
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
@@ -641,3 +655,17 @@ def prev_line_k_v_pairs(changed_values_keys):
             for (key, v) in prev_line_locals_stack[-1]
             if key in changed_values_keys
     ]
+
+
+def replace_old_values(changed_values):
+    # need to update since this is a set of pairs so we cant just update the value for this variable
+    # remove old values according to changed_values
+    # they are different here, the dict has the new values already
+    for key_val_pair in prev_line_k_v_pairs(changed_values):
+        prev_line_locals_stack[-1].remove(key_val_pair)
+        del prev_line_locals_stack_dict[-1][key_val_pair[0]]
+
+    # replace old values according to changed_values
+    set_stuff = convert_to_set(changed_values.items())
+    prev_line_locals_stack[-1].update(set_stuff)
+    prev_line_locals_stack_dict[-1].update(changed_values)
