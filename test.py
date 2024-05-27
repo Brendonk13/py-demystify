@@ -3,6 +3,7 @@ import os
 
 class Vector:
     def __init__(self, x, y, z=None):
+        qq = "hello"
         self.x = x
         self.y = y
         # self._private = z
@@ -55,7 +56,7 @@ def simple_fxn():
 @trace
 def test_multiple_assignments(input_arg):
     x = 10
-    a, b = "a", "b"
+    a, b = "a", x
     a, b = "a", input_arg
 
 @trace
@@ -63,6 +64,9 @@ def test_custom_objects(input_arg):
     input_arg = 321
     vect = Vector(0, 1)
     vect.x = 22
+    x = list(a for a in [1,2])
+    vect.x = x
+    # vect.x = ["a"]
     vect.x = input_arg
     # vect = vect + Vector(0, 1)
     return vect.x
@@ -72,12 +76,12 @@ def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
 
-    if 1:
-        x = 1
-    elif 2:
-        x = 1
-    else:
-        x = 1
+    # if 1:
+    #     x = 1
+    # elif 2:
+    #     x = 1
+    # else:
+    #     x = 1
 
     # vect = Vector(0, 1)
     # vect.x = 22
@@ -89,7 +93,9 @@ def test_function_call(input_arg):
     # y["two"] = 22
     # y = {**{"some": "dict"}, **y}
 
+    # y is a tuple for some reason, almost as if my tracer is changing the locals
     y = [2]
+    # print("==================", type(y))
     y += ["a"]
     # if y + 1 * 3:
     #     y = 3

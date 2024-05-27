@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 from types import GeneratorType
 import inspect
 import functools
@@ -15,6 +16,12 @@ import colorful as cf
 # or commit the work and start working on the one that generates a file
 # NEXT: when showing objects with changed fields, only record the field that changed, not both X and Y when only X is changed
 
+
+# NEXT: work on interpret_expression
+# # TODO: 
+# global prev_line_locals_stack_dict -- so we can show old values correctly instead of grabbing from the hashable version
+
+# -- going to switch to mostly use the dict now instead of the set for everything
 
 # global classes don't work :(((
 #class LineInformation:
@@ -59,6 +66,7 @@ Done:
 
 
 Todo:
+    - keep indentation
     - make strings have quotes around them ie: instead of b=b --> ... HAVE: b='b' --> ...
     - ASYNC
     - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
@@ -109,6 +117,7 @@ def print_on_func_call(fxn_name, fxn_args):
     # add to variable stack
     # pop from function stack when I leave)
     prev_line_locals_stack.append(set())
+    prev_line_locals_stack_dict.append(dict())
     signature = fxn_name + fxn_args
     print(cf.yellow(f'... calling {signature}'))
 
@@ -120,6 +129,7 @@ def on_return(frame, arg):
 
     # pop the function's variables
     prev_line_locals_stack.pop()
+    prev_line_locals_stack_dict.pop()
     JUST_PRINTED_RETURN = True
 
 def trace_this_func(fxn_name):
@@ -130,7 +140,6 @@ def trace_this_func(fxn_name):
 
 def once_per_func_tracer(frame, event, arg):
     # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
-    # print("===================================================================================================== once per func")
     global FIRST_FUNCTION
     global NEED_TO_PRINT_FUNCTION
     name = frame.f_code.co_name
@@ -141,6 +150,9 @@ def once_per_func_tracer(frame, event, arg):
             return
         if "listcomp" in name:
             print("LISTCOMP")
+            return
+        if "genexpr" in name:
+            print("GENEXPR")
             return
         if FIRST_FUNCTION:
             print_on_func_call(name, fxn_args)
@@ -160,7 +172,7 @@ def once_per_func_tracer(frame, event, arg):
 def init_tracer_globals():
     cf.use_style("solarized")
     global prev_line_code
-    # global prev_line_locals_stack_dict
+    global prev_line_locals_stack_dict
     global prev_line_locals_stack
     global prev_line_num
 
@@ -184,7 +196,7 @@ def init_tracer_globals():
     # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
     # prev_line_locals_stack = set()
     prev_line_locals_stack = []
-    # prev_line_locals_stack_dict = dict()
+    prev_line_locals_stack_dict = []
     prev_line_num = [0]
 
 
@@ -236,19 +248,32 @@ def is_custom_object(name, value):
     #^ wont work with __slots__
     # will only detect user defined types
 
+def make_hashable(value):
+    # print("value", value, "type", type(value))
+    if isinstance(value, GeneratorType):
+        return value
+    elif isinstance(value, dict):
+        # todo: recurse over nested dicts
+        return tuple(make_hashable(idk) for idk in value.items())
+    # elif isinstance(value, tuple):
+    elif isinstance(value, tuple):
+        return tuple(make_hashable(idk) for idk in value)
+    elif isinstance(value, list):
+        return make_hashable(tuple(value))
+    else:
+         return value
+
+
 def convert_to_set(locals):
+    # dont believe this will mess with the values of the code we are tracing
     # try:
     #     return set(locals.items())
     hashable_locals = set()
     # for var_name, value in locals.items():
     for var_name, value in locals:
-        if isinstance(value, dict):
-            # todo: recurse over nested dicts
-            hashable_locals.add((var_name, tuple(value.items())))
-        elif isinstance(value, list):
-            hashable_locals.add((var_name, tuple(value)))
-        else:
-            hashable_locals.add((var_name, value))
+        value = make_hashable(value)
+        # print(f"var_name: {var_name}, value: {value}, type: {type(value)}")
+        hashable_locals.add((var_name, value))
     return hashable_locals
 
 
@@ -260,6 +285,8 @@ def trace_lines(frame, event, arg):
     global JUST_PRINTED_RETURN
     global NEED_TO_PRINT_FUNCTION
     global prev_line_locals_stack
+    # TODO: 
+    global prev_line_locals_stack_dict
 
     # clear last results
     PRINTED_LINE.clear()
@@ -273,10 +300,11 @@ def trace_lines(frame, event, arg):
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
         signature = name + fxn_args
         print('The function call: %s produced an exception:\n' % signature)
-        # tb = ''.join(traceback.format_exception(*arg)).strip()
-        # print('%s raised an exception:%s%s' % (name, os.linesep, tb))
+        tb = ''.join(traceback.format_exception(*arg)).strip()
+        print('%s raised an exception:%s%s' % (name, os.linesep, tb))
         #set a flag to print nothing else
-        return
+        # raise ValueError("EXCEPTION")
+        # return
 
     # if not len(prev_line_locals_stack[-1]):
     if not prev_line_locals_stack[-1]:
@@ -286,6 +314,7 @@ def trace_lines(frame, event, arg):
         curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
         print("========== prev_line_locals[-1] is empty, new:", curr_line_locals_set)
         prev_line_locals_stack[-1].update(curr_line_locals_set)
+        prev_line_locals_stack_dict[-1] = curr_line_locals_dict.copy()
 
     # prints the current line about to execute
     extract_original_code()
@@ -327,6 +356,8 @@ def add_new_function_args_to_locals(frame, curr_line_locals_dict):
     print_on_func_call(name, fxn_args)
     curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
     prev_line_locals_stack[-1].update(curr_line_locals_set)
+    prev_line_locals_stack_dict[-1] = curr_line_locals_dict.copy()
+    # print("new function, just made locals:", prev_line_locals_stack[-1])
 
 
 
@@ -336,17 +367,20 @@ def print_on_return(fxn_name, arg):
     print(f"{cf.cyan(f'{fxn_name} returned')} {arg}")
 
 
-def make_dict_hashable(locals):
-    for key, value in locals.items():
-        # list's are unhashable so store as a tuple for now,
-        # can probs make a hashable list wrapper class later on.
-        # big inneficiency doing this err time.
-        if isinstance(value, list):
-            locals[key] = tuple(value)
-        if isinstance(value, dict):
-            # todo: recurse over nested dicts
-            locals[key] = tuple(value.items())
-            # hashable_locals.add((var_name, tuple(value.items())))
+# def make_dict_hashable(locals):
+#     # dont need this since I have a set which is hashable
+#     locals_cp = locals.copy()
+#     for key, value in locals.items():
+#         # list's are unhashable so store as a tuple for now,
+#         # can probs make a hashable list wrapper class later on.
+#         # big inneficiency doing this err time.
+#         if isinstance(value, list):
+#             locals_cp[key] = tuple(value)
+#         if isinstance(value, dict):
+#             # todo: recurse over nested dicts
+#             locals_cp[key] = tuple(value.items())
+#             # hashable_locals.add((var_name, tuple(value.items())))
+#     return locals_cp
 
 def add_object_fields_to_locals(curr_line_locals_dict):
     # curr_line_objects = convert_to_set(
@@ -365,9 +399,13 @@ def add_object_fields_to_locals(curr_line_locals_dict):
     for tracked_name, field_values in curr_line_objects:
         curr_line_locals_dict[tracked_name] = field_values
 
-    make_dict_hashable(curr_line_locals_dict) # convert lists to tuples
+    # must return new dict to avoid changing the variables for the code we are tracing
+
+    # why am I making this hashable then again when I turn it into a set
+    # curr_line_locals_dict = make_dict_hashable(curr_line_locals_dict) # convert lists to tuples
     curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
-    return curr_line_locals_set, curr_line_objects
+    # print("dict", curr_line_locals_dict, "set", curr_line_locals_set)
+    return curr_line_locals_set, curr_line_locals_dict, curr_line_objects
 
 
 def update_stored_vars(curr_line_locals_dict):
@@ -379,8 +417,10 @@ def update_stored_vars(curr_line_locals_dict):
         as the indices where they are found.
     """
     global SELF_IN_LOCALS
+    # print("prev_line_locals", prev_line_locals_stack[-1])
 
-    curr_line_locals_set, curr_line_objects = add_object_fields_to_locals(curr_line_locals_dict)
+
+    curr_line_locals_set, curr_line_locals_dict, curr_line_objects = add_object_fields_to_locals(curr_line_locals_dict)
     new_variables = curr_line_locals_set - prev_line_locals_stack[-1]
 
     # Note: need curr_line_locals_dict since it is a dict and curr_line_locals_set is a set
@@ -389,6 +429,7 @@ def update_stored_vars(curr_line_locals_dict):
         for key,_
         in new_variables
     }
+    # print("changed", changed_values, "=====", curr_line_locals_dict, "=====", curr_line_objects, "new_variables", new_variables)
 
     # Note on classes:
     #     def Vector(x, y)
@@ -412,9 +453,12 @@ def replace_old_values(changed_values):
     # remove old values according to changed_values
     for key_val_pair in prev_line_k_v_pairs(changed_values):
         prev_line_locals_stack[-1].remove(key_val_pair)
+        del prev_line_locals_stack_dict[-1][key_val_pair[0]]
+
 
     # replace old  old values according to changed_values
     prev_line_locals_stack[-1].update(convert_to_set(changed_values.items()))
+    prev_line_locals_stack_dict[-1] = prev_line_locals_stack_dict[-1] | changed_values
 
 
 def assigned_constant():
@@ -430,6 +474,11 @@ def assigned_constant():
 
 
 def gather_additional_data(changed_values, curr_line_objects):
+    """
+        we need to gather additional data if either:
+            1. non-simple assignment  ie: x = "a string".split() * 2 + ["a"]
+            2. variable has new value ie: x = 11; x = 22
+    """
     global ADDITIONAL_LINE
     if NEED_TO_PRINT_FUNCTION:
         # here, we return BEFORE entering a new function
@@ -441,9 +490,12 @@ def gather_additional_data(changed_values, curr_line_objects):
     if not assigned_constant():
         interpret_expression(changed_values, curr_line_objects)
 
-    for (var_name, old_value) in prev_line_locals_stack[-1]:
+    # for (var_name, old_value) in prev_line_locals_stack[-1]:
+    for (var_name, old_value) in prev_line_locals_stack_dict[-1].items():
         if var_name not in changed_values:
             continue
+        # old_value = prev_line_locals_stack_dict[-1][var_name]
+        # new_value
         new_value = changed_values[var_name]
         if var_name.startswith("_TRACKED"):
             # remove prefix: _TRACKED
@@ -451,54 +503,126 @@ def gather_additional_data(changed_values, curr_line_objects):
         ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {new_value}")]
 
 
-def interpret_expression(changed_values, curr_line_objects):
+# def extract_variable_assignments(changed_values, curr_line_objects, var_names, values):
+def extract_variable_assignments(changed_values, curr_line_objects):
+    """ Can do:
+        - x = y
+        - a, b = "a", x
+        - vect = Vector(0, 1)
+        - vect.x = x
+        - self.x = x    # will add more stuff for self later
+    Add:
+        - a, b = "a", vect.x
+        - vect.x, vect.y = x, y
+    """
     global PRINTED_LINE
-    # expression = prev_line_code[0].split('=')[-1].strip()
-    assignment, expression = (code.strip() for code in prev_line_code[0].split('='))
-    print(f"assignment: {assignment}, expression: {expression}")
+    value: Any = ""
+    var_name = ""
+    # print("prev_line_code", prev_line_code)
+    assignment, expression = [code.strip() for code in prev_line_code[0].split('=')]
+    # assignment, expression = code
     # todo: maybe dont need this condition anymore, print prev_line_locals and see if it has both vect and _TRACKED_vect
-    if len(changed_values) > 1 and not curr_line_objects:
+    if len(changed_values) > 1 and not curr_line_objects and "," not in assignment:
+        # if "," in the LHS of equals (assignment), this makes sense, otherwise we are being weird and somehow changed multiple values in one line
         raise ValueError("multiple values changed in one line")
 
-    # assuming no spaces means its getting assigned a variable such as self.x = x
-    if len(changed_values) == 0 and len(expression.split()) == 1 and "(" not in expression:
+    if (
+        len(changed_values) == 0
+        and len(expression.split()) == 1 and "(" not in expression # RHS has no spaces, "(" -- straight assignment ie: x = y
+    ):
         # Note: this conditional handles __init__()
         # Think this is supposed to do substitution
+        # this happens for self.y = y
+        # THIS IS BECAUSE WE DONT CHECK FOR CHANGES TO SELF CURRENTLY THEREFORE CHANGED_VALUES = {}
         var_name = expression
-        value = [value for key,value in prev_line_locals_stack[-1] if key == var_name][0]
+        # print("var_name",  var_name, "=====locals", prev_line_locals_stack[-1], "=====changed", changed_values)
+        # print("===================================================================")
+        value = prev_line_locals_stack_dict[-1][var_name]
+        # value = [value for key,value in prev_line_locals_stack[-1] if key == var_name][0]
+        # print("var_name", var_name, "value",  value)
         PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+        # var_names.append(var_name)
+        # values.append(value)
+        return var_name, value
 
     # ie: if not x:
-    if not changed_values:
-        return
+    # if not changed_values:
+    #     return None, None
     # print("changed", changed_values)
     # print("curr_line_objects", curr_line_objects)
-    if curr_line_objects and len(changed_values) > 1:
+    # if curr_line_objects and len(changed_values) > 1:
+    elif curr_line_objects and len(changed_values) == 2:
         # this conditional triggered when a new object is created (here we have obj: Object, and our own mapping: _TRACKED_obj: ('x': 1), ('y': 2)
         # NOTE: probably does not handle multiple assignments in one row
+        # NOTE: THIS MAY BE TRIGGERED FOR VECT.X, VECT.Y = X, Y
         var_name = tuple(key for key in changed_values.keys() if key.startswith("_TRACKED"))[0]
         value = changed_values[var_name]
-        # print("TWO changed")
     elif len(changed_values) == 1:
-        # print("one changed")
-        # value = tuple(val for val in changed_values.values() if key.startswith("_TRACKED"))
+        # if there is only one changed value, just show the end value, no intermediates
         var_name = tuple(changed_values.keys())[0]
         value = tuple(changed_values.values())[0]
+    elif "," in assignment and len(assignment.split(",")) == len(changed_values) == len(expression.split(",")):
+        # multiple assignment line
+        assignments = [a.strip() for a in assignment.split(",")]
+        expressions = [e.strip() for e in expression.split(",")]
+        print(f"assignments: {assignments}, expressions: {expressions}")
+        # dont make it recursive -- just move the object field_assigned stuff to a diff function and call it in the loop
+        # in the future
+        # for assignment_, expression_ in zip(assignments, expressions):
+            # create changed_values from assignment, expression
+            # var_name, value = extract_variable_assignments({})
+        # extract_variable_assignments(changed_values, curr_line_objects, 
+        # fuck with PRINTED_LINE here instead of making this too general
     else:
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
-    if not isinstance(value, GeneratorType):
+
     # if "generator object" not in value:
-        if var_name.startswith("_TRACKED"):
-            var_name = var_name[9:]
-        assignment_field_chain = assignment.split(".")
-        object_field_assigned = len(assignment_field_chain) == 2
-        if len(assignment_field_chain) > 2:
-            raise ValueError(f"Unexpected chained object assignment to variable: {assignment}")
-        if object_field_assigned:
-            obj, field = assignment_field_chain
-            var_name = assignment
-            field, value = [val for val in value if val[0] == field][0]
-        PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+    if var_name.startswith("_TRACKED"):
+        var_name = var_name[9:]
+    assignment_field_chain = assignment.split(".")
+    object_field_assigned = len(assignment_field_chain) == 2
+    if len(assignment_field_chain) > 2:
+        raise ValueError(f"Unexpected chained object assignment to variable: {assignment}")
+    if object_field_assigned:
+    # if not isinstance(value, GeneratorType):
+        obj, field = assignment_field_chain
+        var_name = assignment
+        value = value[field]
+        # print("object var_name", var_name, "value", value, "obj", obj, "field", field)
+        # value is expected to be a list of pairs (field_name, field_value)
+        # we know the field that changed and must extract that field_value
+        # _, value = [val for val in value if val[0] == field][0]
+    PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+    # var_names.append(var_name)
+    # values.append(value)
+    return var_name, value
+    # return None, None
+
+def interpret_expression(changed_values, curr_line_objects):
+    global PRINTED_LINE
+
+    # x = "="
+    # x.add(" = ")
+    # fn(" = ")
+    has_bracket = "(" in prev_line_code[0]
+    is_assignment = (
+        "=" in prev_line_code[0] and "(" in prev_line_code[0] and prev_line_code[0].index("=") < prev_line_code[0].index("(")
+    ) or "=" in prev_line_code[0]
+    # this is wrong, what if the equals sign is in a string
+    # what if this just returns things instead of printing them, then I can do multiple assignments recursively...
+    # assuming no spaces means its getting assigned a variable such as self.x = x
+
+    if len(changed_values) > 0 or is_assignment:
+        code = [code.strip() for code in prev_line_code[0].split('=')]
+        assignment, expression = code
+        # var_names, values = [], []
+        # extract_variable_assignments(changed_values, curr_line_objects, var_names, values)
+        extract_variable_assignments(changed_values, curr_line_objects)
+        # PRINTED_LINE += [cf.bold(cf.cyan(" #"))]
+        # for var_name, value in zip(var_names, values):
+        #     PRINTED_LINE += [f" {var_name} = {value}"]
+
+
 
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
