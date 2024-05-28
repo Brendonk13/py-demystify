@@ -551,12 +551,12 @@ def extract_variable_assignments(changed_values, curr_line_objects):
             # assignment: vect.x, expression: 99 , var_name: vect.x, value: {'_TRACKED_vect': {'x': 99, 'y': 1}, 'b': 10}
 
             # should I iterate over assignment_.split(".") instead of var_name ??? then have the last arg always be changed_values
-            var_name, value = handle_object_expression(assignment_, expression_, assignment_, changed_values)
+            var_name, value = handle_object_expression(assignment_, expression_, changed_values)
 
             var_names.append(var_name)
             values.append(value)
             if assignment_ == "b":
-                print("assignment_", assignment_, " == expression_", expression_, " == name:", var_name, "value: ", value, "changed_values", changed_values)
+                print("assignment_:", assignment_, " == expression_:", expression_, "value: ", value, "changed_values", changed_values)
         return var_names, values
         # extract_variable_assignments(changed_values, curr_line_objects, 
         # fuck with PRINTED_LINE here instead of making this too general
@@ -564,15 +564,33 @@ def extract_variable_assignments(changed_values, curr_line_objects):
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
 
 
-    var_name, value = handle_object_expression(assignment, expression, var_name, value)
+    var_name, value = handle_object_expression(assignment, expression, changed_values)
     # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
     # o.w just print only the changed fields
     # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
     return [var_name], [value]
 
 
-def handle_object_expression(assignment, expression, var_name, value):
-# def handle_object_expression(assignment, expression, changed_values):
+
+def generate_object_name(field_chain, changed_values):
+    name = ""
+    chained_object = dict()
+    # need to iterate over changed_values
+    for curr_name in field_chain:
+        # transformed_name = f"{OBJECT_PREFIX}{name}"
+        transformed_name = f"{OBJECT_PREFIX}{curr_name}"
+        object_field_names = chained_object if chained_object else changed_values
+        if transformed_name in object_field_names:
+            name = f"{name}.{transformed_name}" if name else transformed_name
+            chained_object = chained_object[transformed_name]
+        else:
+            name = f"{name}.{name}" if name else name
+    print("asss name", name)
+    return name
+
+
+# def handle_object_expression(assignment, expression, var_name, value):
+def handle_object_expression(assignment, expression, changed_values):
     # need to add a field for the actual value to make it clear for when value is the string "vect.x"
     """
         assignment ex.) "vect.x"  || "x"
@@ -584,16 +602,25 @@ def handle_object_expression(assignment, expression, var_name, value):
         if its not an object assignment then we return the input
         if its an object, then we get its value from value by using the field name
     """
-    print("assignment", assignment, ", expression", expression, ", var_name", var_name, ", value", value)
+    # working output for LHS without MAssiggnment
+    # assignment vect.x , expression x , var_name _TRACKED_vect , value {'x': 10, 'y': 1}
+    print("assignment", assignment, ", expression", expression, ", changed_values", changed_values)
     # todo: do substitutions for RHS
     # if "generator object" not in value:
-    if var_name.startswith(OBJECT_PREFIX):
-        var_name = var_name[9:]
+    # if var_name.startswith(OBJECT_PREFIX):
+    #     var_name = var_name[9:]
+    # if not 
+    if "." not in assignment and "." not in expression:
+        return assignment, expression
+
     assignment_field_chain = assignment.split(".")
     expression_field_chain = expression.split(".")
-    object_field_assigned = len(assignment_field_chain) == 2
-    object_field_in_expression = len(expression_field_chain) == 2
+    object_field_assigned = len(assignment_field_chain) > 1
+    object_field_in_expression = len(expression_field_chain) > 1
     # value
+
+    # Note: dont support this until yet we add support to track objects multiple layers deep
+    # these changes arent registered with locals or designated as TRACKED
     if len(assignment_field_chain) > 2:
         raise ValueError(f"Unexpected chained object assignment to variable: {assignment} = {expression}")
     if len(expression_field_chain) > 2:

@@ -1,10 +1,14 @@
 from tracer import trace
 import os
 
+class Oth:
+    def __init__(self, o):
+        self.o = o
+
 class Vector:
     def __init__(self, x, y, z=None):
         qq = "hello"
-        self.x = x
+        self.x = Oth(x)
         self.y = y
         # self._private = z
         # self.x, self.y = x, y
@@ -58,8 +62,8 @@ def test_multiple_assignments(input_arg):
     vect = Vector(0, 1)
     x = 10
     # vect.x, b = 99, vect.x
-    vect.x, b = 99, x
-    # vect.x = x
+    vect.x.o = x
+    # vect.x, b = 99, x
     # a, b = "a", input_arg
 
 @trace
