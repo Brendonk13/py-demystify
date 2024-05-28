@@ -467,18 +467,6 @@ def update_stored_vars(curr_line_locals_dict):
 
 
 
-def assigned_constant():
-    expression = prev_line_code[0].split('=')[-1].strip()
-
-    # todo make this find dicts, differentiate between {1:1} and {1:1, **other_dict}
-    if (expression.isdigit()
-        or search(r'^".*"$', expression)
-        or search(r"^'.*'$", expression)
-        or expression.startswith('return')):
-            return True
-    return False
-
-
 def gather_additional_data(changed_values):
     """
         we need to gather additional data if either:
@@ -506,11 +494,6 @@ def gather_additional_data(changed_values):
             var_name = var_name[9:]
         ADDITIONAL_LINE += [cf.red(f"  {var_name}={old_value}"), "──>", cf.green(f"new value: {new_value}")]
 
-
-def new_object_created(changed_values):
-    new_object = list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))
-    print("new object", new_object)
-    return len(new_object) == 1
 
 # def extract_variable_assignments(changed_values, curr_line_objects, var_names, values):
 def extract_variable_assignments(changed_values):
@@ -619,18 +602,16 @@ def extract_variable_assignments(changed_values):
 
 def generate_object_name(field_chain, changed_values):
     name = ""
-    chained_object = dict()
+    chained_object = changed_values
     # need to iterate over changed_values
     for curr_name in field_chain:
-        # transformed_name = f"{OBJECT_PREFIX}{name}"
         transformed_name = f"{OBJECT_PREFIX}{curr_name}"
-        object_field_names = chained_object if chained_object else changed_values
-        if transformed_name in object_field_names:
+        if transformed_name in chained_object:
             name = f"{name}.{transformed_name}" if name else transformed_name
             chained_object = chained_object[transformed_name]
         else:
-            name = f"{name}.{name}" if name else name
-    print("asss name", name)
+            name = f"{name}.{curr_name}" if name else name
+    print("generated object name", name)
     return name
 
 
@@ -667,35 +648,42 @@ def handle_object_expression(assignment, expression, changed_values):
     object_field_in_expression = len(expression_field_chain) > 1
     # value
 
-    # # Note: dont support this until yet we add support to track objects multiple layers deep
-    # # these changes arent registered with locals or designated as TRACKED
+    # Note: dont support this until yet we add support to track objects multiple layers deep
+    # these changes arent registered with locals or designated as TRACKED
     # if len(assignment_field_chain) > 2:
     #     raise ValueError(f"Unexpected chained object assignment to variable: {assignment} = {expression}")
     # if len(expression_field_chain) > 2:
     #     raise ValueError(f"Unexpected chained object variable in expression: {assignment} = {expression}")
 
-    # if object_field_assigned:
-    #     print("object field assinged")
-    # # if not isinstance(value, GeneratorType):
-    #     obj, field = assignment_field_chain
-
-    #     # assignment ex.) "vect.x", var_name ex.) "vect"
-    #     var_name = assignment
-    #     value = value[field]
-    #     # print("object var_name", var_name, "value", value, "obj", obj, "field", field)
-    #     # value is expected to be a list of pairs (field_name, field_value)
-    #     # we know the field that changed and must extract that field_value
-    #     # _, value = [val for val in value if val[0] == field][0]
-    # if object_field_in_expression:
-    #     obj, field = expression_field_chain
+    if object_field_assigned:
+        var_name = assignment
+        print("object field assinged", assignment)
+        object_name = generate_object_name(assignment_field_chain, changed_values)
+    # if not isinstance(value, GeneratorType):
+        # obj, field = assignment_field_chain
+        # curr
+        value = None
+        for field in object_name.split("."):
+            # get tracked_name if need be
+            # print("field", field, "value", value)
+            value = value[field] if value else changed_values[field]
+            # print("=== field", field, "value", value)
+        # assignment ex.) "vect.x", var_name ex.) "vect"
+        # value = changed_values[field]
+        # print("object var_name", var_name, "value", value, "obj", obj, "field", field)
+        # value is expected to be a list of pairs (field_name, field_value)
+        # we know the field that changed and must extract that field_value
+        # _, value = [val for val in value if val[0] == field][0]
+    if object_field_in_expression:
+        obj, field = expression_field_chain
 
         # do I need to change the var_name ?????
 
     # TODO: iterate over subobjects and remove _TRACKED_ from the name
   # vect={'y': 22, '_TRACKED_x': {'o': 0}} ──> new value: {'y': 22, '_TRACKED_x': {'o': 99}}
 
-    # return var_name, value
-    return assignment, expression
+    return var_name, value
+    # return assignment, expression
 
 
 def interpret_expression(changed_values):
@@ -749,3 +737,21 @@ def replace_old_values(changed_values):
     set_stuff = convert_to_set(changed_values.items())
     prev_line_locals_stack[-1].update(set_stuff)
     prev_line_locals_stack_dict[-1].update(changed_values)
+
+
+def assigned_constant():
+    expression = prev_line_code[0].split('=')[-1].strip()
+    # todo make this find dicts, differentiate between {1:1} and {1:1, **other_dict}
+    if (expression.isdigit()
+        or search(r'^".*"$', expression)
+        or search(r"^'.*'$", expression)
+        or expression.startswith('return')):
+            return True
+    return False
+
+
+# def new_object_created(changed_values):
+#     new_object = list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))
+#     print("new object", new_object)
+#     return len(new_object) == 1
+
