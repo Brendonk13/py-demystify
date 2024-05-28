@@ -18,13 +18,13 @@ import colorful as cf
 # NEXT: when showing objects with changed fields, only record the field that changed, not both X and Y when only X is changed
 
 
+# Note: this thing kinda sucks at interpreting non-obvious things
+# *  119 │   y = [2]  #  y = [2]
+# *  121 │   y += ["a"]  #  y + = ["a"]
+  # y=[2] ──> new value: [2, 'a']
 
 # NEXT:
 # - try to delete 'vect': <__main__.Vector object at 0x7f40fd7df050>, and only store their fields
-
-# NEXT: work on interpret_expression
-# # TODO: 
-# global prev_line_locals_stack_dict -- so we can show old values correctly instead of grabbing from the hashable version
 
 # -- going to switch to mostly use the dict now instead of the set for everything
 
@@ -542,63 +542,37 @@ def extract_variable_assignments(changed_values):
         print("extract_variable_assignments no changed values")
         return [var_name], [value]
 
-    # elif curr_line_objects and len(changed_values) == 2 and any("object" in str(value)for value in changed_values.values()):
-        # and one of these objects is not OBJECT_PREFIX
-    # elif (
-    #         # curr_line_objects
-    #         new_object_created(changed_values)
-    #         and len(changed_values) == 2
-    #         # make sure both changed_values are objects, and that one is the raw object pointer
-    #         and len(list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))) == 1
-    #         # and all(is_custom_object(var_name, value) for var_name, value in changed_values.items())
-    #     ):
-    #     # this conditional triggered when a new object is created (here we have obj: Object, and our own mapping: _TRACKED_obj: ('x': 1), ('y': 2)
-    #     # NOTE: probably does not handle multiple assignments in one row
-    #     # NOTE: THIS MAY BE TRIGGERED FOR VECT.X, VECT.Y = X, Y
-    #     var_name = tuple(key for key in changed_values.keys() if key.startswith(OBJECT_PREFIX))[0]
-    #     value = changed_values[var_name]
     elif "," in assignment and len(assignment.split(",")) == len(expression.split(",")):
         # multiple assignment line
         assignments = [a.strip() for a in assignment.split(",")]
         expressions = [e.strip() for e in expression.split(",")]
-        # print(f"changed_values: {changed_values}, assignments: {assignments}, expressions: {expressions}")
-        # dont make it recursive -- just move the object field_assigned stuff to a diff function and call it in the loop
-        # in the future
         var_names, values = [], []
-        for assignment_, expression_ in zip(assignments, expressions):
-            # create changed_values from assignment, expression
-
-            # what does this function return .....
-            # assignment = "x, y", assignment_ = "x" then "y"
-
-            # -- need to find actual var_name from assignment_//expression_ and then send the correct thing from changed_values
+        for curr_assignment, curr_expression in zip(assignments, expressions):
+            # -- need to find actual var_name from curr_assignment//curr_expression and then send the correct thing from changed_values
 # changed_values: {'_TRACKED_vect': {'x': 99, 'y': 1}, 'b': 10}, assignments: ['vect.x', 'b'], expressions: ['99', 'x']
             # assignment: vect.x, expression: 99 , var_name: vect.x, value: {'_TRACKED_vect': {'x': 99, 'y': 1}, 'b': 10}
 
-            # should I iterate over assignment_.split(".") instead of var_name ??? then have the last arg always be changed_values
-            var_name, value = handle_object_expression(assignment_, expression_, changed_values)
-
+            var_name, value = handle_object_expression(curr_assignment, curr_expression, changed_values)
             var_names.append(var_name)
             values.append(value)
-            # if assignment_ == "b":
-            #     print("assignment_:", assignment_, " == expression_:", expression_, "value: ", value, "changed_values", changed_values)
         return var_names, values
         # extract_variable_assignments(changed_values, curr_line_objects, 
         # fuck with PRINTED_LINE here instead of making this too general
     elif len(changed_values) == 1:
-        # if there is only one changed value, just show the end value, no intermediates
-        var_name, value = tuple(changed_values.items())[0]
+        # print("changed_values", changed_values, "name,value", var_name, value)
+        var_name, value = handle_object_expression(assignment, expression, changed_values)
+        return [var_name], [value]
     else:
         # raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}")
 
 
-    print("DEFAAULT")
-    var_name, value = handle_object_expression(assignment, expression, changed_values)
-    # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
-    # o.w just print only the changed fields
-    # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
-    return [var_name], [value]
+    # # print("changed_values", changed_values, "name,value", var_name, value,  "assignment", assignment, "expression:", expression)
+    # var_name, value = handle_object_expression(assignment, expression, changed_values)
+    # # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
+    # # o.w just print only the changed fields
+    # # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+    # return [var_name], [value]
 
 
 
@@ -635,15 +609,15 @@ def handle_object_expression(assignment, expression, changed_values):
 
     # print(f"handle_object_expression assignment: {assignment}, expression: {expression}, changed_values: {changed_values}")
 
-    # todo: do substitutions for RHS
-    # if "generator object" not in value:
-    # if var_name.startswith(OBJECT_PREFIX):
-    #     var_name = var_name[9:]
-    # if not 
     if "." not in assignment and "." not in expression:
+        if assignment in changed_values:
+            return assignment, changed_values[assignment]
         return assignment, expression
+        # return assignment, expression
 
     if "self" in assignment or "self" in expression:
+        if assignment in changed_values:
+            return assignment, changed_values[assignment]
         return assignment, expression
 
     assignment_field_chain = assignment.split(".")

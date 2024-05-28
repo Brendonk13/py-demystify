@@ -71,6 +71,10 @@ def test_multiple_assignments(input_arg):
     vect.x, b = 99, vect.x
     vect.x, vect.y = 99, vect.x
 
+    # y = vect.x.o
+    # vect.x.o, b = 99, vect.x.o
+    # vect.x.o, vect.y = 99, vect.x.o
+
     # vect.x, b = 99, vect.x
     # vect.x.o = x
     # vect.x.o = y
@@ -164,7 +168,7 @@ def test_dict(input_arg):
 
 if __name__ == "__main__":
     # call the function
-    # idk = test_dict(666)
+    idk = test_dict(666)
     # idk = test_function_call(666)
     # idk = test_custom_objects(123)
-    test_multiple_assignments(123)
+    # test_multiple_assignments(123)
