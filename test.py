@@ -64,7 +64,9 @@ def test_multiple_assignments(input_arg):
     x, y = 11, 22
     vect.y = y
     vect.x.o = 99
-    vect.x.o = y
+    # vect.x.o = y
+    y = vect.x.o
+
     # vect.x, b = 99, vect.x
     # vect.x.o = x
     # vect.x.o = y

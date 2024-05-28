@@ -657,25 +657,19 @@ def handle_object_expression(assignment, expression, changed_values):
 
     if object_field_assigned:
         var_name = assignment
-        print("object field assinged", assignment)
+        # this is an assignment so we get the value from changed_values
         object_name = generate_object_name(assignment_field_chain, changed_values)
-    # if not isinstance(value, GeneratorType):
-        # obj, field = assignment_field_chain
-        # curr
         value = None
         for field in object_name.split("."):
-            # get tracked_name if need be
-            # print("field", field, "value", value)
             value = value[field] if value else changed_values[field]
-            # print("=== field", field, "value", value)
-        # assignment ex.) "vect.x", var_name ex.) "vect"
-        # value = changed_values[field]
-        # print("object var_name", var_name, "value", value, "obj", obj, "field", field)
-        # value is expected to be a list of pairs (field_name, field_value)
-        # we know the field that changed and must extract that field_value
-        # _, value = [val for val in value if val[0] == field][0]
     if object_field_in_expression:
-        obj, field = expression_field_chain
+        # print("object expression", expression_field_chain)
+        var_name = expression
+        # this is an expression so we get the value from this object.field's previos value
+        object_name = generate_object_name(expression_field_chain, prev_line_locals_stack_dict[-1])
+        value = None
+        for field in object_name.split("."):
+            value = value[field] if value else prev_line_locals_stack_dict[-1][field]
 
         # do I need to change the var_name ?????
 
