@@ -8,8 +8,8 @@ class Oth:
 class Vector:
     def __init__(self, x, y, z=None):
         qq = "hello"
-        self.x = Oth(x)
-        # self.x = x
+        # self.x = Oth(x)
+        self.x = x
         self.y = y
         # self._private = z
         # self.x, self.y = x, y
@@ -63,9 +63,13 @@ def test_multiple_assignments(input_arg):
     vect = Vector(0, 1)
     x, y = 11, 22
     vect.y = y
-    vect.x.o = 99
+    # vect.x.o = 99
     # vect.x.o = y
-    y = vect.x.o
+    # y = vect.x.o
+
+    y = vect.x
+    vect.x, b = 99, vect.x
+    vect.x, vect.y = 99, vect.x
 
     # vect.x, b = 99, vect.x
     # vect.x.o = x

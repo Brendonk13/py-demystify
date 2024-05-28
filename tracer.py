@@ -521,7 +521,7 @@ def extract_variable_assignments(changed_values):
         # if is_custom_object(name, value) and not name.startswith(OBJECT_PREFIX):
     # print("prev_line_code", prev_line_code)
     assignment, expression = [code.strip() for code in prev_line_code[0].split('=')]
-    # print("====== assignment", assignment, "changed_values", changed_values)
+    # print("====== assignment", assignment, "expression", expression, "changed_values", changed_values)
     # assignment, expression = code
     # todo: maybe dont need this condition anymore, print prev_line_locals and see if it has both vect and _TRACKED_vect
     # if len(changed_values) > 1 and not curr_line_objects and "," not in assignment:
@@ -539,6 +539,7 @@ def extract_variable_assignments(changed_values):
         var_name = expression
         value = prev_line_locals_stack_dict[-1][var_name]
         # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
+        print("extract_variable_assignments no changed values")
         return [var_name], [value]
 
     # elif curr_line_objects and len(changed_values) == 2 and any("object" in str(value)for value in changed_values.values()):
@@ -556,14 +557,11 @@ def extract_variable_assignments(changed_values):
     #     # NOTE: THIS MAY BE TRIGGERED FOR VECT.X, VECT.Y = X, Y
     #     var_name = tuple(key for key in changed_values.keys() if key.startswith(OBJECT_PREFIX))[0]
     #     value = changed_values[var_name]
-    elif len(changed_values) == 1:
-        # if there is only one changed value, just show the end value, no intermediates
-        var_name, value = tuple(changed_values.items())[0]
-    elif "," in assignment and len(assignment.split(",")) == len(changed_values) == len(expression.split(",")):
+    elif "," in assignment and len(assignment.split(",")) == len(expression.split(",")):
         # multiple assignment line
         assignments = [a.strip() for a in assignment.split(",")]
         expressions = [e.strip() for e in expression.split(",")]
-        print(f"changed_values: {changed_values}, assignments: {assignments}, expressions: {expressions}")
+        # print(f"changed_values: {changed_values}, assignments: {assignments}, expressions: {expressions}")
         # dont make it recursive -- just move the object field_assigned stuff to a diff function and call it in the loop
         # in the future
         var_names, values = [], []
@@ -582,16 +580,20 @@ def extract_variable_assignments(changed_values):
 
             var_names.append(var_name)
             values.append(value)
-            if assignment_ == "b":
-                print("assignment_:", assignment_, " == expression_:", expression_, "value: ", value, "changed_values", changed_values)
+            # if assignment_ == "b":
+            #     print("assignment_:", assignment_, " == expression_:", expression_, "value: ", value, "changed_values", changed_values)
         return var_names, values
         # extract_variable_assignments(changed_values, curr_line_objects, 
         # fuck with PRINTED_LINE here instead of making this too general
+    elif len(changed_values) == 1:
+        # if there is only one changed value, just show the end value, no intermediates
+        var_name, value = tuple(changed_values.items())[0]
     else:
         # raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}")
 
 
+    print("DEFAAULT")
     var_name, value = handle_object_expression(assignment, expression, changed_values)
     # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
     # o.w just print only the changed fields
@@ -611,7 +613,7 @@ def generate_object_name(field_chain, changed_values):
             chained_object = chained_object[transformed_name]
         else:
             name = f"{name}.{curr_name}" if name else name
-    print("generated object name", name)
+    # print("generated object name", name)
     return name
 
 
@@ -630,7 +632,9 @@ def handle_object_expression(assignment, expression, changed_values):
     """
     # working output for LHS without MAssiggnment
     # assignment vect.x , expression x , var_name _TRACKED_vect , value {'x': 10, 'y': 1}
-    # print("assignment", assignment, ", expression", expression, ", changed_values", changed_values)
+
+    # print(f"handle_object_expression assignment: {assignment}, expression: {expression}, changed_values: {changed_values}")
+
     # todo: do substitutions for RHS
     # if "generator object" not in value:
     # if var_name.startswith(OBJECT_PREFIX):
@@ -655,16 +659,15 @@ def handle_object_expression(assignment, expression, changed_values):
     # if len(expression_field_chain) > 2:
     #     raise ValueError(f"Unexpected chained object variable in expression: {assignment} = {expression}")
 
+    var_name = assignment
     if object_field_assigned:
-        var_name = assignment
         # this is an assignment so we get the value from changed_values
         object_name = generate_object_name(assignment_field_chain, changed_values)
         value = None
         for field in object_name.split("."):
             value = value[field] if value else changed_values[field]
     if object_field_in_expression:
-        # print("object expression", expression_field_chain)
-        var_name = expression
+        # var_name = expression
         # this is an expression so we get the value from this object.field's previos value
         object_name = generate_object_name(expression_field_chain, prev_line_locals_stack_dict[-1])
         value = None
@@ -703,8 +706,10 @@ def interpret_expression(changed_values):
         # print("OUTPUT var_names: ", var_names, "values:", values)
         # for each variable change, store: assigned_var_name, 
         PRINTED_LINE += [cf.bold(cf.cyan(" #"))]
-        for var_name, value in zip(var_names, values):
-            PRINTED_LINE += [f" {var_name} = {value}"]
+        num_vars = len(var_names)
+        for i in range(num_vars):
+            var_name, value = var_names[i], values[i]
+            PRINTED_LINE += [f" {var_name} = {value},"] if 0 <= i < num_vars - 1 else [f" {var_name} = {value}"]
 
 
 # change name(s) since I store var_name, value tuples, not key_val tup's
