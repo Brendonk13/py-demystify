@@ -1,0 +1,39 @@
+
+Try:
+    https://github.com/alexmojaki/executing
+    - to get extra execution info for a frame
+
+next:
+    - keep checking out competition
+
+Other projects which trace code:
+    https://mostlynerdless.de/blog/2023/10/06/lets-create-a-python-debugger-together-part-2/
+
+    https://github.com/ionelmc/python-hunter?tab=readme-ov-file#faq
+    - smiley https://pypi.org/project/smiley/
+
+
+all frame components explained: https://explog.in/notes/settrace.html
+ex.) frame.f_code:
+│     {'_co_code_adaptive': b'\x97\x00d\x01d\x02|\x00d\x03\x9c\x03}\x01d\x00S\x00',
+│  'co_argcount': 1,
+│  'co_cellvars': (),
+│  'co_code': b'\x97\x00d\x01d\x02|\x00d\x03\x9c\x03}\x01d\x00S\x00',
+│  'co_consts': (None, 'world', 1, ('hello', 'one', 'last')),
+│  'co_exceptiontable': b'',
+│  'co_filename': '/home/brendon/dev/dev/my_projects/print/2024/test.py',
+│  'co_firstlineno': 102,
+│  'co_flags': 3,
+│  'co_freevars': (),
+│  'co_kwonlyargcount': 0,
+│  'co_linetable': b'\x80\x00\xf0\x0c\x00\x12\x19\xd8\x0f\x10\xd8\x10'
+│                  b'\x19\xf0\x07\x05\r\x06\xf0\x00\x05\r\x06\x80E\x80E\x80E',
+│  'co_lnotab': b'\x02\x06\x02\x01\x02\x01\x02\xfd',
+│  'co_name': 'test_multi_line_statements',
+│  'co_names': (),
+│  'co_nlocals': 2,
+│  'co_posonlyargcount': 0,
+│  'co_qualname': 'test_multi_line_statements',
+│  'co_stacksize': 4,
+│  'co_varnames': ('input_arg', 'other')}
+

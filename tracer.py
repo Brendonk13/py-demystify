@@ -1,4 +1,6 @@
 import sys
+import dis
+from pprint import pprint
 from copy import deepcopy
 from typing import Any
 from types import GeneratorType
@@ -25,17 +27,11 @@ import colorful as cf
 
 # NEXT:
 # - try to delete 'vect': <__main__.Vector object at 0x7f40fd7df050>, and only store their fields
+# need to fix this for SELF
 
-# -- going to switch to mostly use the dict now instead of the set for everything
 
-# global classes don't work :(((
-#class LineInformation:
-#    fxn_locals=None
-#    code=None
-#    def __init__(self, fxn_locals=None, code=None):
-#        pass
-        # self.fxn_locals = fxn_locals
-        # self.code = code
+# NEXT:
+# - MAKE STUPID MULTI-LINE STATEMENTS WORK
 
 """
 Note on classes:
@@ -56,13 +52,13 @@ NOT WORKING:
         -- and return y[-1]
         -- the python side of things may need to run "exec" to get these values however this may not be safe to do
         test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
-    - object properties changing
-        - object.some_value = 10
 
 Done:
     - make loops work
     test: [] += [a]
     - return x, y, z()
+    - object properties changing
+        - object.some_value = 10
     - del some_dict[key]
     some_dict[key] = 2
 
@@ -71,6 +67,7 @@ Done:
 
 
 Todo:
+    - dont show value changes for loop variables -- just show inline ie for x in range(3): # x = 1
     - keep indentation
     - make strings have quotes around them ie: instead of b=b --> ... HAVE: b='b' --> ...
     - ASYNC
@@ -117,172 +114,44 @@ Not working:
 # for attr in dir(frame.f_code):
 # print("obj.%s = %r" % (attr, getattr(frame.f_code, attr)))
 
+# Define a function to explore Python frame objects
+def investigate_frames(current_frame):
+    # Print the current frame's outer frames and their details
+    # current_frame = inspect.currentframe()
+    frames = inspect.getouterframes(current_frame)
+    print('Frame exploration:')
+    for idx, frame_info in enumerate(frames):
+        frame, filename, line_number, function_name, lines, index = frame_info
+        print(f'Frame {idx}: {function_name} at {filename}:{line_number}')
+        print(f'Code Context: {lines[index].strip()}')
+        print(f'Locals: {frame.f_locals}')
+        print('---')
 
-def print_on_func_call(fxn_name, fxn_args):
-    # add to variable stack
-    # pop from function stack when I leave)
-    prev_line_locals_stack.append(set())
-    prev_line_locals_stack_dict.append(dict())
-    signature = fxn_name + fxn_args
-    print(cf.yellow(f'... calling {signature}'))
+def print_all(obj):
+    fields = {}
+    for attr_name in dir(obj):
+        if not attr_name.startswith('__'):
+            if attr_name in ("f_globals", "f_locals", "f_builtins"):
+                continue
+            # NOTE: use: https://docs.python.org/3/library/inspect.html#inspect.getattr_static
+            # getattr_static
+            attr_value = getattr(obj, attr_name)
+            if not callable(attr_value):  # Exclude methods
+                fields[attr_name] = attr_value
+    pprint(fields)
+    return fields
 
-
-def on_return(frame, arg):
-    global JUST_PRINTED_RETURN
-    # first arg is fxn name
-    print_on_return(frame.f_code.co_name, arg)
-
-    # pop the function's variables
-    prev_line_locals_stack.pop()
-    prev_line_locals_stack_dict.pop()
-    JUST_PRINTED_RETURN = True
-
-def trace_this_func(fxn_name):
-    # if fxn_name in list(should_trace): return True
-    return True
-
-
-
-def once_per_func_tracer(frame, event, arg):
-    # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
-    global FIRST_FUNCTION
-    global NEED_TO_PRINT_FUNCTION
-    name = frame.f_code.co_name
-    if event == 'call':
-        fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
-        if "dictcomp" in name:
-            print("DICTCOMP")
-            return
-        if "listcomp" in name:
-            print("LISTCOMP")
-            return
-        if "genexpr" in name:
-            print("GENEXPR")
-            return
-        if FIRST_FUNCTION:
-            print_on_func_call(name, fxn_args)
-            FIRST_FUNCTION = False
-        else:
-            NEED_TO_PRINT_FUNCTION = True
-
-        if trace_this_func(name):
-            return trace_lines
-        # print(inspect.getcomments(frame.f_code))
-        # comments will need to be read from the file along with the lines they appear in
-
-    print("=============== no tracer returned kinda")
-    return once_per_func_tracer
-
-
-def init_tracer_globals():
-    cf.use_style("solarized")
-    global prev_line_code
-    global prev_line_locals_stack_dict
-    global prev_line_locals_stack
-    global prev_line_num
-
-    global OBJECT_PREFIX
-    global SELF_IN_LOCALS
-    global PRINTED_LINE
-    global ADDITIONAL_LINE
-    global JUST_PRINTED_RETURN
-    global FIRST_FUNCTION
-    global NEED_TO_PRINT_FUNCTION
-    # use list to store string since lists are mutable.
-    prev_line_code = ["0"]
-
-    FIRST_FUNCTION = True
-    NEED_TO_PRINT_FUNCTION = False
-    JUST_PRINTED_RETURN = False
-    PRINTED_LINE = []
-    ADDITIONAL_LINE = []
-    SELF_IN_LOCALS = False
-
-    OBJECT_PREFIX = "_TRACKED_"
-    # is a set of var_name, val tuples.
-    # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
-    # prev_line_locals_stack = set()
-    prev_line_locals_stack = []
-    prev_line_locals_stack_dict = []
-    prev_line_num = [0]
-
-
-
-def trace(function):
-    """
-    trace the decorated function before changing back to default sys.gettrace value.
-    """
-    @functools.wraps(function)
-    def setup_tracing(*args, **kwds):
-        """
-            use a try because of the finally functionality.
-        """
-        try:
-            #done before decorated function
-            old = sys.gettrace()
-            init_tracer_globals()
-
-            sys.settrace(once_per_func_tracer)
-            return function(*args, **kwds) #executes decorated function
-        finally:
-            sys.settrace(old)
-    return setup_tracing
-
-
-def extract_original_code():
-    global JUST_PRINTED_RETURN
-    global PRINTED_LINE
-    if JUST_PRINTED_RETURN:
-        JUST_PRINTED_RETURN = False
-        return
-
-    # no print on first call (where value isss empty string
-    if prev_line_code[0] != "0":
-        # should do more stuff instead of always printing lstrip'd lines
-        # need to show conditionals/their indentations better.
-        PRINTED_LINE += [cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}']
-
-
-def update_line_code(next_line_executed):
-    prev_line_code[0] = next_line_executed
-    # print("new prev line code", prev_line_code[0])
-
-def update_line_num(line_num):
-    prev_line_num[0] = line_num
-
-def is_custom_object(name, value):
-    return name != "self" and hasattr(value, "__dict__")
-    # https://stackoverflow.com/a/52624678
-    #^ wont work with __slots__
-    # will only detect user defined types
-
-def make_hashable(value):
-    # print("value", value, "type", type(value))
-    if isinstance(value, GeneratorType):
-        return value
-    elif isinstance(value, dict):
-        # todo: recurse over nested dicts
-        return tuple(make_hashable(idk) for idk in value.items())
-    # elif isinstance(value, tuple):
-    elif isinstance(value, tuple):
-        return tuple(make_hashable(idk) for idk in value)
-    elif isinstance(value, list):
-        return make_hashable(tuple(value))
-    else:
-         return value
-
-
-def convert_to_set(locals):
-    # dont believe this will mess with the values of the code we are tracing
-    # try:
-    #     return set(locals.items())
-    hashable_locals = set()
-    # for var_name, value in locals.items():
-    for var_name, value in locals:
-        value = make_hashable(value)
-        # print(f"var_name: {var_name}, value: {value}, type: {type(value)}")
-        hashable_locals.add((var_name, value))
-    return hashable_locals
+# def print_all(frame):
+#     def find_all_attrs(curr_obj):
+#         all_attrs = {}
+#         for attr in dir(curr_obj):
+#             if attr.startswith("__"):
+#                 continue
+#             # all_attrs[attr] = getattr(curr_obj, attr)
+#             all_attrs[attr] = find_all_attrs(getattr(curr_obj, attr))
+#         return all_attrs
+#     attrs = find_all_attrs(frame)
+#     pprint(attrs)
 
 
 def trace_lines(frame, event, arg):
@@ -320,7 +189,7 @@ def trace_lines(frame, event, arg):
         # this happens when new functions are called and all the function args are added to locals at once right below
         # prev_line_locals_stack[-1].update(curr_line_locals_set)
         curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
-        print("========== prev_line_locals[-1] is empty, new:", curr_line_locals_set)
+        # print("========== prev_line_locals[-1] is empty, new:", curr_line_locals_set)
         prev_line_locals_stack[-1].update(curr_line_locals_set)
     # if not prev_line_locals_stack_dict[-1]:
         prev_line_locals_stack_dict[-1].update(deepcopy(curr_line_locals_dict))
@@ -328,9 +197,17 @@ def trace_lines(frame, event, arg):
     # prints the current line about to execute
     extract_original_code()
 
-    # changed_values = update_locals(curr_line_locals_dict)
-    # think I should keep the prints elsewhere to increase modularity
-    # update_stored_vars(curr_line_locals_dict, curr_line_locals_set)
+    # investigate_frames(frame)
+
+#     print()
+    # print_all(inspect.getframeinfo(frame))
+    # print_all(frame.f_code)
+
+    # for attr_name in dir(frame.f_code):
+    #     if attr_name in ("_co_code_adaptive", "co_code", "co_linetable", "co_lnotab"):
+    #         print(attr_name, dis.dis(getattr(frame.f_code, attr_name)))
+    # print()
+
     update_stored_vars(curr_line_locals_dict)
 
     print(*PRINTED_LINE)
@@ -343,10 +220,6 @@ def trace_lines(frame, event, arg):
         NEED_TO_PRINT_FUNCTION = False
     if event == 'return':
         on_return(frame, arg)
-
-    # if len(prev_line_locals_stack):
-        # print("locals", prev_line_locals_stack[-1])
-        # print(list(val for _,val in prev_line_locals_stack[-1]))
 
     skip_lane = "with" in prev_line_code[0]
     next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
@@ -362,6 +235,10 @@ def add_new_function_args_to_locals(frame, curr_line_locals_dict):
     """
     name = frame.f_code.co_name
     fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+    # NOTE: can get more detailed call info: https://docs.python.org/3/library/inspect.html#inspect.getcallargs
+    # also here: https://docs.python.org/3/library/inspect.html#inspect.formatargvalues
+    # or: https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
+    # inspect has a lot of functionality for all sorts of details for function calls
     print_on_func_call(name, fxn_args)
     curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
     prev_line_locals_stack[-1].update(curr_line_locals_set)
@@ -392,36 +269,16 @@ def store_nested_objects(curr_line_locals_dict, locals_with_objects):
 
 
 def add_object_fields_to_locals(curr_line_locals_dict):
-    global OBJECT_PREFIX
-    # curr_line_objects = convert_to_set(
-    # curr_line_objects = [
-    #     # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
-    #     (f"{OBJECT_PREFIX}{name}", deepcopy(vars(value)))
-    #     for name,value
-    #     in curr_line_locals_dict.items()
-    #     # in prev_line_locals_stack[-1]
-    #     if is_custom_object(name, value)
-    # ]
+    """
+        - create deepcopy of function locals
+        - for each object in local, extract its fields/values and store that instead
+        - create a set from this dict so we can see which values are new in calling function
+    """
 
     # create a copy so we can delete the root objects and only store their field from vars()
     locals_with_objects = deepcopy(curr_line_locals_dict)
     # print("locals_with_objects", locals_with_objects, "locals_dict", curr_line_locals_dict)
     store_nested_objects(curr_line_locals_dict, locals_with_objects)
-    # print("== locals_with_objects", locals_with_objects)
-    # print("nested objects", curr_line_locals_dict)
-    # for name,value in curr_line_locals_dict.items():
-    #     # in prev_line_locals_stack[-1]
-    #     if is_custom_object(name, value):
-    #         tracked_name = f"{OBJECT_PREFIX}{name}"
-    #         # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
-    #         # ie: fields = {"sub_object": <__main__.SomeOtherObject object at 0x7fb745d8e710>, "z": 10}
-    #         fields = deepcopy(vars(value))
-    #         curr_line_locals_dict[tracked_name] = fields
-
-
-    # for each object, extract its fields (using vars) so we can track when their fields change
-    # for tracked_name, field_values in curr_line_objects:
-    #     curr_line_locals_dict[tracked_name] = field_values
 
     curr_line_locals_set = convert_to_set(locals_with_objects.items())
     # return curr_line_locals_set, curr_line_locals_dict, curr_line_objects
@@ -459,7 +316,7 @@ def update_stored_vars(curr_line_locals_dict):
     # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals_stack stack
     if not SELF_IN_LOCALS and "self" in changed_values:
         SELF_IN_LOCALS = True
-        print("============== self in locals, returning...")
+        # print("============== self in locals, returning...")
         return
     gather_additional_data(changed_values)
     replace_old_values(changed_values)
@@ -511,22 +368,8 @@ def extract_variable_assignments(changed_values):
     value: Any = ""
     var_name = ""
 
-    # if curr_line_objects and len(changed_values) == 2:
-    #     print("FIREXT", len(list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))) == 1)
-    #     z = filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items())
-    #     f = [is_custom_object(var_name, value) and not var_name.startswith(OBJECT_PREFIX) for var_name, value in changed_values.items()]
-    #     s = all(is_custom_object(var_name, value) or var_name.start for var_name, value in changed_values.items())
-    #     print("changed_values", changed_values, "objects", curr_line_objects, "first", f, "seceond", s, "z", len(list(z)))
-
-        # if is_custom_object(name, value) and not name.startswith(OBJECT_PREFIX):
-    # print("prev_line_code", prev_line_code)
     assignment, expression = [code.strip() for code in prev_line_code[0].split('=')]
     # print("====== assignment", assignment, "expression", expression, "changed_values", changed_values)
-    # assignment, expression = code
-    # todo: maybe dont need this condition anymore, print prev_line_locals and see if it has both vect and _TRACKED_vect
-    # if len(changed_values) > 1 and not curr_line_objects and "," not in assignment:
-    #     # if "," in the LHS of equals (assignment), this makes sense, otherwise we are being weird and somehow changed multiple values in one line
-    #     raise ValueError("multiple values changed in one line")
 
     if (
         len(changed_values) == 0
@@ -565,15 +408,6 @@ def extract_variable_assignments(changed_values):
     else:
         # raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
         raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}")
-
-
-    # # print("changed_values", changed_values, "name,value", var_name, value,  "assignment", assignment, "expression:", expression)
-    # var_name, value = handle_object_expression(assignment, expression, changed_values)
-    # # todo: printing: if the object print is short-ish print: vect={x:1, y:2} -> vect={RED(x:999), y:2}
-    # # o.w just print only the changed fields
-    # # PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
-    # return [var_name], [value]
-
 
 
 def generate_object_name(field_chain, changed_values):
@@ -625,13 +459,6 @@ def handle_object_expression(assignment, expression, changed_values):
     object_field_assigned = len(assignment_field_chain) > 1
     object_field_in_expression = len(expression_field_chain) > 1
     # value
-
-    # Note: dont support this until yet we add support to track objects multiple layers deep
-    # these changes arent registered with locals or designated as TRACKED
-    # if len(assignment_field_chain) > 2:
-    #     raise ValueError(f"Unexpected chained object assignment to variable: {assignment} = {expression}")
-    # if len(expression_field_chain) > 2:
-    #     raise ValueError(f"Unexpected chained object variable in expression: {assignment} = {expression}")
 
     var_name = assignment
     if object_field_assigned:
@@ -715,16 +542,229 @@ def replace_old_values(changed_values):
 def assigned_constant():
     expression = prev_line_code[0].split('=')[-1].strip()
     # todo make this find dicts, differentiate between {1:1} and {1:1, **other_dict}
-    if (expression.isdigit()
-        or search(r'^".*"$', expression)
-        or search(r"^'.*'$", expression)
-        or expression.startswith('return')):
+    # maybe do opposite and search for non-constants
+    # TODO: add case for +=, *=, etc -- these should be considered non-obvious
+    if (
+        expression.isdigit()
+        or search(r'^".*"$', expression) # search for string assignment
+        or search(r"^'.*'$", expression) # search for string assignment
+        or expression.startswith('return') # TODO: delete this so we can do interpretations on return (-- then maybe just delete the "a_fn() returned XXX line)
+    ):
             return True
     return False
 
 
-# def new_object_created(changed_values):
-#     new_object = list(filter(lambda x: is_custom_object(x[0], x[1]) and not x[0].startswith(OBJECT_PREFIX), changed_values.items()))
-#     print("new object", new_object)
-#     return len(new_object) == 1
+def update_line_code(next_line_executed):
+    prev_line_code[0] = next_line_executed
+    # print("new prev line code", prev_line_code[0])
 
+def update_line_num(line_num):
+    prev_line_num[0] = line_num
+
+def is_custom_object(name, value):
+    # https://docs.python.org/3/library/inspect.html#fetching-attributes-statically
+    # -- hasatr can cause code to execute !!!
+    # todo: CHANGE
+    return name != "self" and hasattr(value, "__dict__")
+    # https://stackoverflow.com/a/52624678
+    #^ wont work with __slots__
+    # will only detect user defined types
+
+def make_hashable(value):
+    # print("value", value, "type", type(value))
+    if isinstance(value, GeneratorType):
+        return value
+    elif isinstance(value, dict):
+        # todo: recurse over nested dicts
+        return tuple(make_hashable(idk) for idk in value.items())
+    # elif isinstance(value, tuple):
+    elif isinstance(value, tuple):
+        return tuple(make_hashable(idk) for idk in value)
+    elif isinstance(value, list):
+        return make_hashable(tuple(value))
+    else:
+         return value
+
+
+def convert_to_set(locals):
+    hashable_locals = set()
+    for var_name, value in locals:
+        value = make_hashable(value)
+        # print(f"var_name: {var_name}, value: {value}, type: {type(value)}")
+        hashable_locals.add((var_name, value))
+    return hashable_locals
+
+
+def print_on_func_call(fxn_name, fxn_args):
+    # add to variable stack
+    # pop from function stack when I leave)
+    prev_line_locals_stack.append(set())
+    prev_line_locals_stack_dict.append(dict())
+    signature = fxn_name + fxn_args
+    print(cf.yellow(f'... calling {signature}'))
+
+
+def on_return(frame, arg):
+    global JUST_PRINTED_RETURN
+    # first arg is fxn name
+    print_on_return(frame.f_code.co_name, arg)
+
+    # pop the function's variables
+    prev_line_locals_stack.pop()
+    prev_line_locals_stack_dict.pop()
+    JUST_PRINTED_RETURN = True
+
+def trace_this_func(fxn_name):
+    # if fxn_name in list(should_trace): return True
+    return True
+
+
+def extract_original_code():
+    global JUST_PRINTED_RETURN
+    global PRINTED_LINE
+    if JUST_PRINTED_RETURN:
+        JUST_PRINTED_RETURN = False
+        return
+
+    # no print on first call (where value isss empty string
+    if prev_line_code[0] != "0":
+        # should do more stuff instead of always printing lstrip'd lines
+        # need to show conditionals/their indentations better.
+        PRINTED_LINE += [cf.cyan(f'*  {prev_line_num[0]} │  '), f'{prev_line_code[0].lstrip(" ")}']
+
+
+class Trace:
+    """
+    Each new function will create a new function object and this will allow me to write an entire function at a time into the csv
+    - CSV is bad for this since I can't read one line at a time
+    - maybe use sqlite and create csv from sqlite file at the end by using subprocess()
+    I kinda want to just do duckdb but it sucks theres not a django orm for that
+    - also just sucks that people have to download another package, but its just a dev dependency
+
+
+    what if I wrote the csv file one function at a time as they complete
+    then the first function will be at the end of the file and I can just read it in reverse
+    - and the first function should be able to link to what line the function's it calls are in the csv
+    ex.)
+    def idk():
+        x = other_fn()
+    -- when we create a new function object cuz other_fn() is called
+    -- we pass in a special parameter representing idk() so that idk can find the code for other_fn()
+    """
+    def __init__(self):
+        self.prev_line = []
+        self.prev_trace = sys.gettrace()
+
+    def __call__(self, function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            with self:
+                return function(*args, **kwargs)
+
+        return wrapper
+
+    def __enter__(self):
+        self.prev_trace = sys.gettrace()
+        init_tracer_globals()
+        sys.settrace(once_per_func_tracer)
+
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        sys.settrace(self.prev_trace) # has to be the first line or we get weird errors
+        x = 10
+        return
+        # return self
+
+
+def init_tracer_globals():
+    cf.use_style("solarized")
+    global prev_line_code
+    global prev_line_locals_stack_dict
+    global prev_line_locals_stack
+    global prev_line_num
+
+    global OBJECT_PREFIX
+    global SELF_IN_LOCALS
+    global PRINTED_LINE
+    global ADDITIONAL_LINE
+    global JUST_PRINTED_RETURN
+    global FIRST_FUNCTION
+    global NEED_TO_PRINT_FUNCTION
+    # use list to store string since lists are mutable.
+    prev_line_code = ["0"]
+
+    FIRST_FUNCTION = True
+    NEED_TO_PRINT_FUNCTION = False
+    JUST_PRINTED_RETURN = False
+    PRINTED_LINE = []
+    ADDITIONAL_LINE = []
+    SELF_IN_LOCALS = False
+
+    OBJECT_PREFIX = "_TRACKED_"
+    # is a set of var_name, val tuples.
+    # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
+    # prev_line_locals_stack = set()
+    prev_line_locals_stack = [set()]
+    prev_line_locals_stack_dict = [{}]
+    prev_line_num = [0]
+
+
+
+
+
+def once_per_func_tracer(frame, event, arg):
+    # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
+    global FIRST_FUNCTION
+    global NEED_TO_PRINT_FUNCTION
+    name = frame.f_code.co_name
+    if event == 'call':
+        fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+        if "dictcomp" in name:
+            print("DICTCOMP")
+            return
+        if "listcomp" in name:
+            print("LISTCOMP")
+            return
+        if "genexpr" in name:
+            # https://docs.python.org/3/library/inspect.html#current-state-of-generators-coroutines-and-asynchronous-generators
+            # Note: one day can support inspecting this ^
+            print("GENEXPR")
+            return
+        if FIRST_FUNCTION:
+            print_on_func_call(name, fxn_args)
+            FIRST_FUNCTION = False
+        else:
+            NEED_TO_PRINT_FUNCTION = True
+
+        if trace_this_func(name):
+            return trace_lines
+        # print(inspect.getcomments(frame.f_code))
+        # comments will need to be read from the file along with the lines they appear in
+
+    print("=============== no tracer returned kinda")
+    return once_per_func_tracer
+
+
+def trace(function):
+    """
+    trace the decorated function before changing back to default sys.gettrace value.
+    """
+    @functools.wraps(function)
+    def setup_tracing(*args, **kwds):
+        """
+            use a try because of the finally functionality.
+        """
+        try:
+            #done before decorated function
+            old = sys.gettrace()
+            init_tracer_globals()
+
+            # https://docs.python.org/3/library/sys.html#sys.settrace
+            sys.settrace(once_per_func_tracer)
+            return function(*args, **kwds) #executes decorated function
+        finally:
+            sys.settrace(old)
+            # read the csv created and print everything
+            # real library will hit the api and verify account info by using an api key
+            # if cant reach internet, should still work with minimal version
+    return setup_tracing

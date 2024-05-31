@@ -1,4 +1,4 @@
-from tracer import trace
+from tracer import trace, Trace
 import os
 
 class Oth:
@@ -88,46 +88,49 @@ def test_custom_objects(input_arg):
     vect.x = 22
     x = list(a for a in [1,2])
     vect.x = x
-    # vect.x = ["a"]
-    vect.x = input_arg
-    # vect = vect + Vector(0, 1)
-    return vect.x
-
-@trace
-def test_function_call(input_arg):
-    string = "a String "
-    thirdVar = string * 2
-
-    # if 1:
-    #     x = 1
-    # elif 2:
-    #     x = 1
-    # else:
-    #     x = 1
 
     # vect = Vector(0, 1)
     # vect.x = 22
     # vect.x = 33
     # # vect = vect + Vector(0, 1)
 
-    # y = {"one": 1, "two": 2}
-    # del y["two"]
-    # y["two"] = 22
-    # y = {**{"some": "dict"}, **y}
+    # vect.x = ["a"]
+    vect.x = input_arg
+    # vect = vect + Vector(0, 1)
+    return vect.x
 
-    # y is a tuple for some reason, almost as if my tracer is changing the locals
+# @Trace()
+# @trace
+def test_multi_line_statements(input_arg):
+    # string = "a String "
+    # thirdVar = string * 2
+
+    other = {
+        "hello": "world",
+        "one": 1,
+        "last": input_arg,
+        # "last": thirdVar,
+    }
+
+    # # if "one" in other and other["one"] \
+    # if other["one"] \
+    #     and True:
+    #     x = other
+    # else:
+    #     x = 10
+
+@Trace()
+# @trace
+def test_function_call(input_arg):
+    string = "a String "
+    thirdVar = string * 2
+
+    x = list(range(10))
     y = [2]
     # print("==================", type(y))
     y += ["a"]
-    # if y + 1 * 3:
-    #     y = 3
-    # y = loop_fn(y)
-    # y = simple_fxn()
-    # return simple_fxn()
-    # y = complex_fxn()
-    # return complex_fxn()
+
     return y[-1]
-    # return y[-1], simple_fxn()
 
 
 @trace
@@ -168,7 +171,8 @@ def test_dict(input_arg):
 
 if __name__ == "__main__":
     # call the function
-    idk = test_dict(666)
-    # idk = test_function_call(666)
+    # idk = test_dict(666)
+    idk = test_function_call(444)
+    # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
     # test_multiple_assignments(123)
