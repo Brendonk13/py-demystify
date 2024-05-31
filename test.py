@@ -111,6 +111,7 @@ def test_multi_line_statements(input_arg):
         "last": input_arg,
         # "last": thirdVar,
     }
+    # how do I check for when I am at the end of a multi-line statement
 
     # # if "one" in other and other["one"] \
     # if other["one"] \
@@ -127,7 +128,6 @@ def test_function_call(input_arg):
 
     x = list(range(10))
     y = [2]
-    # print("==================", type(y))
     y += ["a"]
 
     return y[-1]

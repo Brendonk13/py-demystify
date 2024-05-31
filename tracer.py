@@ -77,6 +77,13 @@ Todo:
     ie: Vector(x,y) shows Vector(0, 1)
     -- same for loops -- maybe not possible though
 
+    - delete inline comments
+        - dont have to worry about multi-line strings since those dont have comments
+        - how do I tell if a comment is inside a string or not
+    - how to tell when a multi-line anything is complete
+    - https://github.com/alexmojaki/executing?tab=readme-ov-file#libraries-that-use-this ?
+    -- this can get the ast from a frame object
+
 
     I think I need to use the dis module to find intermediate fxn return values
 
@@ -653,6 +660,22 @@ class Trace:
     """
     def __init__(self):
         self.prev_line = []
+        self.first_function = True
+        self.need_to_print_function = False
+        self.just_printed_return = False
+        self.printed_line = []
+        self.additional_line = []
+        self.self_in_locals = False
+
+        self.object_prefix = "_TRACKED_"
+        # is a set of var_name, val tuples.
+        # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
+        # prev_line_locals_stack = set()
+        # need an extra data structure in these lists since __exit__ is part of the tracing
+        self.prev_line_locals_stack = [set()]
+        self.prev_line_locals_stack_dict = [{}]
+        # self.prev_line_num = [0]
+        self.prev_line_num = []
         self.prev_trace = sys.gettrace()
 
     def __call__(self, function):
