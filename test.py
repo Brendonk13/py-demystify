@@ -1,4 +1,4 @@
-from tracer import trace, Trace
+from tracer import Trace
 import os
 
 class Oth:
@@ -58,7 +58,7 @@ def simple_fxn():
     y = "adsd"
     return x
 
-@trace
+@Trace()
 def test_multiple_assignments(input_arg):
     vect = Vector(0, 1)
     x, y = 11, 22
@@ -81,7 +81,7 @@ def test_multiple_assignments(input_arg):
     # vect.x, b = 99, x
     # a, b = "a", input_arg
 
-@trace
+@Trace()
 def test_custom_objects(input_arg):
     input_arg = 321
     vect = Vector(0, 1)
@@ -99,8 +99,7 @@ def test_custom_objects(input_arg):
     # vect = vect + Vector(0, 1)
     return vect.x
 
-# @Trace()
-# @trace
+@Trace()
 def test_multi_line_statements(input_arg):
     # string = "a String "
     # thirdVar = string * 2
@@ -121,7 +120,6 @@ def test_multi_line_statements(input_arg):
     #     x = 10
 
 @Trace()
-# @trace
 def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
@@ -133,7 +131,7 @@ def test_function_call(input_arg):
     return y[-1]
 
 
-@trace
+@Trace()
 def test_lots(input_arg):
     x = 10
     string = "a String "
@@ -157,7 +155,7 @@ def test_lots(input_arg):
     # return idk
 
 
-@trace
+@Trace()
 def test_dict(input_arg):
     x = 10
     string = "a String "

@@ -1,3 +1,108 @@
+Major todos:
+    - convert to using function objects
+    - add support
+    - fix smaller things
+    - output to csv
+
+next: save this in git, see how it looks with printed on the same line and just fix formatting in general
+
+NEXT: WORK ON THE ASSIGNED_CONSTANT PART TO USE THE FUNCTION INTERPRET_EXPRESSION
+try to do a substitution for an if statement ?
+or commit the work and start working on the one that generates a file
+NEXT: when showing objects with changed fields, only record the field that changed, not both X and Y when only X is changed
+
+
+Note: this thing kinda sucks at interpreting non-obvious things
+*  119 │   y = [2]  #  y = [2]
+*  121 │   y += ["a"]  #  y + = ["a"]
+  y=[2] ──> new value: [2, 'a']
+
+NEXT:
+- try to delete 'vect': <__main__.Vector object at 0x7f40fd7df050>, and only store their fields
+need to fix this for SELF
+
+
+NEXT:
+- MAKE STUPID MULTI-LINE STATEMENTS WORK
+
+Note on classes:
+    def Vector(x, y)
+    ...
+    y = Vector(0, 1)
+-- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals_stack stack
+
+
+
+
+NOT WORKING:
+    - with statements maybe not possible
+    - make if statements do replacement ie: if x: ==> if 10:
+        -- what about if some_dict.get("key"):
+        -- and return y[-1]
+        -- the python side of things may need to run "exec" to get these values however this may not be safe to do
+        test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
+
+Done:
+    - make loops work
+    test: [] += [a]
+    - return x, y, z()
+    - object properties changing
+        - object.some_value = 10
+    - del some_dict[key]
+    some_dict[key] = 2
+
+    *  63 │   y = {**{"some": "dict"}, **y}  # y = {'some': 'dict', 'one': 1, 'two': 22}
+        y=(('one', 1), ('two', 22)) ──> new value: {'some': 'dict', 'one': 1, 'two': 22}
+
+
+Todo:
+    - dont show value changes for loop variables -- just show inline ie for x in range(3): # x = 1
+    - keep indentation -- may need to get this value from frame object
+    - make strings have quotes around them ie: instead of b=b --> ... HAVE: b='b' --> ...
+    - ASYNC
+    - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
+        -- this should be a flag "eval_all_branch_paths"
+    - add more substitution logic for function calls and such
+    ie: Vector(x,y) shows Vector(0, 1)
+    -- same for loops -- maybe not possible though
+
+    - delete inline comments
+        - dont have to worry about multi-line strings since those dont have comments
+        - how do I tell if a comment is inside a string or not
+    - how to tell when a multi-line anything is complete
+    - https://github.com/alexmojaki/executing?tab=readme-ov-file#libraries-that-use-this ?
+    -- this can get the ast from a frame object
+
+
+    I think I need to use the dis module to find intermediate fxn return values
+
+    INSTEAD OF:
+        y=<generator object complex_fxn.<locals>.<genexpr> at 0x7ffb2d46ae90> ──> new value: <__main__.Vector object at 0x7ffb2d2caa10>
+    WE DO:
+        y=generator --> new value: Vector(0,1)
+    ==> need to remember that signature for an object declaration
+
+convert to file writing:
+    - then I can just print things and not have intermediate functions print in order of execution
+
+
+Not working:
+
+    currently printing the next line number instead of the last one
+    how I handle lists
+
+    not sure if I should be using a set anymore ..
+    cuz i gotta convert hella other stuff to set each time
+
+    Returns:
+        a returned value doesnt print unless its a reassignment
+            y = 5
+            y = othh()
+            works
+
+            y = othh()
+            -- prints nothing
+
 
 Try:
     https://github.com/alexmojaki/executing
@@ -37,3 +142,118 @@ ex.) frame.f_code:
 │  'co_stacksize': 4,
 │  'co_varnames': ('input_arg', 'other')}
 
+
+think I need a database
+- at least do sqllite
+- would just be so much work to parse the csv and would be super slow
+
+what If I did it in json
+
+todo:
+    - for each print, this should be an interaction with self.function_stack[-1]
+    - for each access of self.printed_line or self.additional_line, this should be an interaction with self.function_stack[-1]
+
+    - find stateful and stateless functions
+    - move the stateless ones out of the class
+
+
+JSON: [
+    ..., ..., ..., ...,
+    {
+        execution_id: 5,
+        file_name:
+        line_number,
+        original_line:   "y = other_fn()"
+        formatted_line:  "y = 10",
+        additional_line: "y=0 -> y=10",
+        function_signature: ""
+        type: "function_call",      # "line | function_start | function_call | return | exception | loop"
+        caller_execution_id: -- not needed since we can just go back a layer in the json
+        -- I think that this was only needed for the csv
+        -- this may still be helpful, but when does a random line need to know what function it is in
+        inner_code: [
+            {
+                execution_id: 6,
+                file_name:
+                line_number,
+                original_line: "def other_fn(input_arg=678)"
+                formatted_line: "", # always blank for new function
+                additional_line: "", # always blank for new function
+                type: "line | function_start | function_call | return | exception | loop"
+
+                │ function_signature: "def idk(input_arg=678):"
+                │ MAYBE dont need this since the function_signature can be accessed as the first element of every array???
+                inner_code: "", # -- idea: have all function code inside of this ie: [{function_call: [{line1, line2}]}]
+                    -- bad idea: 
+            },
+            {
+                execution_id: 7,
+                original_line: "for i in range(10)"
+                type: "loop"
+                inner_code: [
+                    {
+                        loop_iteration_number: ""
+                        loop_var_value: ""
+                        original_line: "q = extract_q(i)"
+                        formatted_line: "q = 99"
+                        inner_code: [{}]
+                    },
+                ],
+            },
+        ],
+    },
+]
+
+DB:
+function:
+- line_id
+- execution_id
+
+CSV:
+    curr function:
+        - signature
+    prev function:
+        - signature
+    Line:
+        - line_num
+        - changed_values?
+        - code
+        - formatted_line
+        - additional_line
+
+CSV: execution_id, file_name, line_num, caller_line_number -- use execution_id??, function_signature, caller_function_signature, original_line, formatted_line, additional_line
+should I sort the csv in some way at the end ??
+
+Todo:
+    create global set of values
+    figure out the diff shit and q's i wrote down
+
+    new csv header:
+        - the time a function was called in case we call the same fxn with same args each time
+            -- ie
+            for _ in [1,2]:
+                fn()
+            has 2 lines in the csv for this loop
+            the new header is a number 1, 2 for each time it is called with the same signature
+
+    I think I need to use the dis module to find intermediate fxn return values
+
+convert to file writing:
+    - then I can just print things and not have intermediate functions print in order of execution
+
+    -- problem: how to make it clear for when the same function is called twice with diff arguments
+
+
+Not working:
+
+    not sure if I should be using a set anymore ..
+    cuz i gotta convert hella other stuff to set each time
+
+    Returns:
+        a returned value doesnt print unless its a reassignment
+            y = 5
+            y = othh()
+            works
+
+            y = othh()
+            -- prints nothing
