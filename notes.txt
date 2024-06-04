@@ -117,6 +117,11 @@ Other projects which trace code:
     https://github.com/ionelmc/python-hunter?tab=readme-ov-file#faq
     - smiley https://pypi.org/project/smiley/
 
+Note: dont think my method for tracking variable changes for objects will work for when I add support for searching for certain value changes
+- ie: v = Vector(); other_fn(vect); vect.x = 10
+- my model is based on variable names so if im searching for changes to v, vect.x wont register
+- could get around this by noting when the variable im searching for has initially been declared
+- then when u pass it to a fxn, its object ID is marked as being in that fxn
 
 all frame components explained: https://explog.in/notes/settrace.html
 ex.) frame.f_code:
