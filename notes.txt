@@ -4,6 +4,9 @@ Major todos:
     - fix smaller things
     - output to csv
 
+Todo:
+    - test execution_id across multiple function calls
+
 next: save this in git, see how it looks with printed on the same line and just fix formatting in general
 
 NEXT: WORK ON THE ASSIGNED_CONSTANT PART TO USE THE FUNCTION INTERPRET_EXPRESSION

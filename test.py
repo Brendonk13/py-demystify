@@ -24,6 +24,14 @@ def context_manager():
         for entry in entries:
             x = 10
 
+def double_assignment_loop_fn(end_range):
+    # x = 1
+    some_dict = {"one": 1, "two": 2}
+    for key, value in some_dict.items():
+    # for i in list(range(end_range)):
+        x = (key, value)
+
+
 def loop_fn(end_range):
     # x = 1
     for i in range(end_range):
@@ -85,6 +93,7 @@ def test_multiple_assignments(input_arg):
 def test_custom_objects(input_arg):
     input_arg = 321
     vect = Vector(0, 1)
+    x = 10
     vect.x = 22
     x = list(a for a in [1,2])
     vect.x = x
@@ -124,6 +133,7 @@ def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
 
+    x = complex_fxn()
     x = list(range(10))
     y = [2]
     y += ["a"]
