@@ -6,6 +6,7 @@ Major todos:
 
 Todo:
     - test execution_id across multiple function calls
+    add callers execution_id so we know when a function_call is just a return !!
 
 next: save this in git, see how it looks with printed on the same line and just fix formatting in general
 

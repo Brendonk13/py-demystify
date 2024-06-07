@@ -133,10 +133,14 @@ def test_function_call(input_arg):
     string = "a String "
     thirdVar = string * 2
 
-    x = complex_fxn()
+    # x = 1
     x = list(range(10))
+    x = complex_fxn() # NOTE: this is not getting marked as a change
     y = [2]
     y += ["a"]
+    # NOTE: this is getting marked as a change for the next line not this one
+    # but its getting added to the correct lines[-1]
+    y = [12345]
 
     return y[-1]
 
@@ -181,6 +185,7 @@ if __name__ == "__main__":
     # call the function
     # idk = test_dict(666)
     idk = test_function_call(444)
+
     # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
     # test_multiple_assignments(123)

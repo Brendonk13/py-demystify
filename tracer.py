@@ -37,7 +37,7 @@ class LineInfo:
         self.changed_values = {}
 
     def __repr__(self):
-        return f"LineInfo(type={self.type}, line={self.original_line}, execution_id={self.execution_id})"
+        return f"LineInfo(type={self.type}, line={self.original_line}, execution_id={self.execution_id}, additional_line: {self.uncolored_additional_line})"
 
     def __str__(self):
         return self.__repr__()
@@ -139,6 +139,7 @@ class Function:
         # -- now we write to the JSON file here I think, then we 
         self.need_to_print_function = False
         self.just_printed_return = False
+        self.just_returned = False
         self.prev_line_code = ""
         self.self_in_locals = False
 
@@ -149,6 +150,7 @@ class Function:
 
     def print_line(self):
         if self.lines:
+            # print(self.lines[-1])
             self.lines[-1].print_line()
     #     original_line = self.lines[-1].get_original_line()
     #     formatted_line = self.lines[-1].get_original_line()
@@ -162,11 +164,6 @@ class Function:
         pass
 
     def print_on_return(self, fxn_name, arg):
-        # which line do I add this to ? do I append a new line ?
-        # KEEP
-        # move this to function
-        # global SELF_IN_LOCALS
-
         # reset this value once we leave a function (we set this to true if self in locals)
         self.self_in_locals = False
         # def __init__(self, code, execution_id, type, line_number):
@@ -261,6 +258,7 @@ class Function:
         #     ...
         #     y = Vector(0, 1)
         # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the self.prev_line_locals_stack stack
+        # todo: do I still need this ?
         if not self.self_in_locals and "self" in changed_values:
             self.self_in_locals = True
             print("============== self in locals, returning...")
@@ -314,13 +312,14 @@ class Function:
         # global self.additional_line
         if self.need_to_print_function:
             # here, we return BEFORE entering a new function
-            # if self.print_mode == "console":
-                # print("need to print function, returning...")
+            # print("need to print function, returning...")
             return
 
         self.construct_formatted_line(changed_values)
         if not self.is_loop():
             self.construct_additional_line(changed_values)
+            # if self.lines:
+            #     print("additional: ", self.lines[-1].additional_line)
 
 
 
@@ -490,7 +489,6 @@ class Function:
             self.lines[-1].create_formatted_line(list(changed_values.keys()), list(changed_values.values()))
             # HOW TO ENFORCE NOT HAVING ADDITIONAL_LINE FOR LOOPS
             # print("LOOPPPPP, changed_values", changed_values, "is_assignment", is_assignment, "prev_line_code", self.prev_line_code)
-            return
         elif len(changed_values) > 0 or is_assignment:
             self.in_loop_declaration = False
             assignment, expression = self.get_assignment_and_expression()
@@ -511,12 +509,6 @@ class Function:
             #     var_name, value = var_names[i], values[i]
             #     self.lines[-1].formatted_line += [f" {var_name} = {value},"] if 0 <= i < num_vars - 1 else [f" {var_name} = {value}"]
 
-        # if self.is_loop():
-        #     self.lines[-1]
-
-
-    # def is_loop(self):
-    #     return False
 
     # change name(s) since I store var_name, value tuples, not key_val tup's
     def prev_line_k_v_pairs(self, changed_values_keys):
@@ -605,19 +597,10 @@ class Function:
         self.prev_line_code = next_line_executed
         self.prev_line_number = frame.f_lineno
 
-        # self.function_stack[-1].add_next_line(next_line_executed, frame.f_lineno)
-    # def update_line_code(self, next_line_executed):
-    #     # prev_line_code[0] = next_line_executed
-    #     self.prev_line_code = next_line_executed
-    #     # print("new prev line code", prev_line_code[0])
-
-    # def update_line_num(self, line_num):
-    #     self.prev_line_num = line_num
 
     def add_original_code(self):
-        # CAN MOVE
-        # global JUST_PRINTED_RETURN
         if self.just_printed_return:
+            # print("JUST PRINTED RTEURN")
             self.just_printed_return = False
             return
 
@@ -651,12 +634,13 @@ class Function:
             # todo: only add json if the field exists in order to reduce size of json
             self.json[idx] = {
                 "execution_id": line.execution_id,
-                "file_name": self.file_name,
+                # "file_name": self.file_name,
                 "line_number": line.line_number,
                 "original_line": line.original_line,
-                "formatted_line": line.formatted_line,
-                "additional_line": line.uncolored_additional_line,
-                "type": line.type,
+                # "formatted_line": line.formatted_line,
+                # "additional_line": line.uncolored_additional_line,
+                # "type": line.type,
+                "function_json": line.function_json,
             }
             # if line.type == "code":
             #     self.json[idx].update({
@@ -696,7 +680,7 @@ class Trace:
         self.prev_line = []
         self.first_function = True
         self.need_to_print_function = False
-        self.just_printed_return = False
+        # self.just_printed_return = False
         self.printed_line = []
         self.additional_line = []
         self.self_in_locals = False
@@ -790,6 +774,8 @@ class Trace:
         # self.print_on_return(frame.f_code.co_name, arg)
         self.function_stack[-1].print_on_return(frame.f_code.co_name, arg)
         json = self.function_stack[-1].to_json()
+        # TODO: store this json in the calling class
+        # if len(self.function_stack) == 1:
         # pprint(json)
             # self.function_stack
 
@@ -798,15 +784,20 @@ class Trace:
         # ie: currently, v = Vector() will do "calling __init__..."
         # then when __init__ returns, it will print "calling test_custom_objects" before doing the next line in the original function
 
-        print("before pop", self.function_stack)
+        # print("before pop", self.function_stack)
         # pop the function's variables
         # self.prev_line_locals_stack.pop()
         # self.prev_line_locals_stack_dict.pop()
         self.function_stack.pop()
         if not self.done_tracing():
             self.function_stack[-1].add_json(json)
+            # is this correct below here ? we're setting just_printed_return for a diff functin that returned (the popped one)
             self.function_stack[-1].just_printed_return = True
-        print("AFTER pop", self.function_stack)
+            self.function_stack[-1].just_returned = True
+        else:
+            # not sure if this is the correct json
+            pprint(json, sort_dicts=False)
+        # print("AFTER pop", self.function_stack)
 
 
     def trace_lines(self, frame, event, arg):
@@ -863,12 +854,12 @@ class Trace:
         # prints the current line about to execute
         # self.function_stack[-1].add_original_code()
         self.function_stack[-1].add_original_code()
-        # print(len(self.function_stack), self.function_stack[-1].print_mode)
 
 
         self.function_stack[-1].update_stored_vars(curr_line_locals_dict)
         # then
         # self.update_stored_vars(curr_line_locals_dict)
+        self.execution_id =  self.function_stack[-1].latest_execution_id
 
 
         self.function_stack[-1].print_line()
@@ -877,15 +868,20 @@ class Trace:
         # if self.additional_line:
         #     print(*self.additional_line)
 
+        # if self.function_stack[-1].need_to_print_function and not self.function_stack[-1].just_printed_return:
         if self.function_stack[-1].need_to_print_function:
             # append set() to prev_line_locals_stack, then add the initial function args to this set
-            self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
+            if not self.function_stack[-1].just_returned:
+                self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
             self.function_stack[-1].need_to_print_function = False
+            print("new function", self.function_stack)
+        if self.function_stack[-1].just_returned:
+            self.function_stack[-1].just_returned = False
         if event == 'return':
             self.on_return(frame, arg)
-
-        if len(self.function_stack) == 1 and self.function_stack[0] == None:
-            return
+            print("after return", self.function_stack)
+            if len(self.function_stack) == 1 and self.function_stack[0] == None:
+                return
 
         # do this at the end since update_locals uses prev_line_code
         # self.function_stack[-1].add_next_line(next_line_executed, frame.f_lineno)
@@ -893,7 +889,6 @@ class Trace:
         # self.update_line_code(next_line_executed)
         # self.update_line_num(frame.f_lineno)
 
-        self.execution_id =  self.function_stack[-1].latest_execution_id
 
 
     def add_new_function_args_to_locals(self, frame, curr_line_locals_dict):
@@ -923,6 +918,7 @@ class Trace:
         self.function_stack.append(Function(file_name, self.object_prefix, signature, self.execution_id + 1))
         # this causes immediate prints instead of deferring prints to this class
         self.function_stack[-1].print_mode = "console"
+
 
     def print_on_func_call(self, file_name, fxn_name, fxn_args):
         # add to variable stack
