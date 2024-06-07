@@ -5,8 +5,23 @@ Major todos:
     - output to csv
 
 Todo:
-    - test execution_id across multiple function calls
-    add callers execution_id so we know when a function_call is just a return !!
+    - why do results vary wildly if loop_fn() returns a value or not
+    if loop_fn() returns 200:
+        *  51 │  y = loop_fn(2)   # end_range = 2
+        *  52 │  if not x: 
+        *  55 │  x += 1 
+        x=6666 ──> new value: 6667
+        *  56 │  y = "adsd" 
+        y=200 ──> new value: adsd
+    if loop_fn() IMPLICITLY returns None
+        *  51 │  y = loop_fn(2)   # y = None
+        *  52 │  if not x: 
+        *  55 │  x += 1 
+        *  56 │  y = "adsd" 
+    NOTE: if loop_fn() explicitly returns None, it is the same as when it returns any value
+    NOTE: why the fuck is it printing # end_range = 2
+THEN:
+    - continue simplifying and trying to eliminate all the weird state variables
 
 next: save this in git, see how it looks with printed on the same line and just fix formatting in general
 

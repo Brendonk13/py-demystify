@@ -223,9 +223,10 @@ class Function:
             for key,_
             in new_variables
         }
-        # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
         if self.function_transition and not changed_values:
             return
+
+        # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
 
         # Note on classes:
         #     def Vector(x, y)
@@ -732,32 +733,38 @@ class Trace:
         # prints the current line about to execute
         self.function_stack[-1].add_original_code()
 
-
-        # if not self.function_stack[-1].function_transition:
         self.function_stack[-1].update_stored_vars(curr_line_locals_dict)
-        self.execution_id =  self.function_stack[-1].latest_execution_id
-        # else:
-        #     print(self.function_stack[-1].lines[-1])
+        # update_stored_vars determines if this line should be added and if so, then execution_id is incrememented
+        # this allows update_stored_vars to determine if self.execution_id should be incremented
+        self.execution_id = self.function_stack[-1].latest_execution_id
 
         self.function_stack[-1].print_line()
 
-        if self.function_stack[-1].function_transition:
-            # append set() to prev_line_locals_stack, then add the initial function args to this set
-            if not self.function_stack[-1].just_returned:
-                self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
-            self.function_stack[-1].function_transition = False
-            # print("new function", self.function_stack)
-        if self.function_stack[-1].just_returned:
-            self.function_stack[-1].just_returned = False
+        if self.new_function_called():
+            self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
         if event == 'return':
             self.on_return(frame, arg)
             # print("after return", self.function_stack)
             if len(self.function_stack) == 1 and self.function_stack[0] == None:
                 return
 
+        # update variables
+        if self.function_stack[-1].function_transition:
+            # if function_transition and not just_returned, then it must be a new function called
+            # if not self.function_stack[-1].just_returned:
+            #     self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
+            self.function_stack[-1].function_transition = False
+            # print("new function", self.function_stack)
+        if self.function_stack[-1].just_returned:
+            self.function_stack[-1].just_returned = False
+
         # do this at the end since update_locals uses prev_line_code
         self.function_stack[-1].add_next_line(frame)
 
+
+    def new_function_called(self):
+        return self.function_stack[-1].function_transition \
+               and not self.function_stack[-1].just_returned
 
 
     def add_new_function_args_to_locals(self, frame, curr_line_locals_dict):
