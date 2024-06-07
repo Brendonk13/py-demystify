@@ -176,7 +176,7 @@ def test_dict(input_arg):
     thirdVar = string * 2
 
     x = 20
-    idk = {"hello": "world"}
+    idk = {"hello": "world"} | {"yo": "hello!!"}
     return idk
 
 

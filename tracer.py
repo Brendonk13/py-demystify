@@ -46,21 +46,27 @@ class LineInfo:
         line = cf.cyan("  #") if self.print_mode == "console" else "  #"
         num_vars = len(var_names)
         # construct formatted_line
+        line_has_variables = False
         for i in range(num_vars):
             var_name, value = var_names[i], values[i]
+            if var_name != "":
+                line_has_variables = True
             new_part = f" {var_name} = {value}"
 
             # add a comma for all but last element
             if  i < num_vars - 1:
                 new_part += ","
             line += new_part
-        self.formatted_line = "".join(line)
+
+        # don't print anything if there are no variables, happens on last loop condition evaluation: for i in range(0)
+        if line_has_variables:
+            self.formatted_line = "".join(line)
 
 
     def print_line(self):
         if self.print_mode == "json":
             return
-        # todo: add uncolored_formatted_line
+        # todo: add uncolored_formatted_line, uncolored_original_line
         original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{self.original_line.lstrip(' ')}"
         formatted_line = f"{original_line} {self.formatted_line}"
         print(formatted_line)
@@ -108,13 +114,6 @@ class Function:
         self.in_loop_declaration = False
         # loops = [LineInfo[], LineInfo[], LineInfo[], ..., LineInfo[], LineInfo[], LineInfo[]]
         self.loops = []
-        # self.inner_code = []
-        # when a new function call is encountered, the main tracer will do tracer_self.functions[-1]
-        # self.function_stack = []
-
-        # should this store nested info ??
-        # then for each new line, the main loop will see y=10, and add a normal line
-        # or will see y = other_fn() and then where will it assign inner_code ??
 
         self.object_prefix = object_prefix
         self.file_name = file_name
@@ -124,7 +123,7 @@ class Function:
         # need to ensure that if a new function is called, that the next line has the correct execution_id
         # need one source of truth for this in the root tracer class
         # -- now we write to the JSON file here I think, then we 
-        self.need_to_print_function = False
+        self.function_transition = False
         self.just_printed_return = False
         self.just_returned = False
         self.prev_line_code = ""
@@ -155,9 +154,12 @@ class Function:
 
     def initialize_locals(self, curr_line_locals):
         # called when a new function is found
-        curr_line_locals_set = self.convert_to_set(curr_line_locals.items())
+        # todo: test this now that it also calls add_object_fields_to_locals
+        curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals)
+
+        # curr_line_locals_set = self.convert_to_set(curr_line_locals.items())
         self.prev_line_locals_set.update(curr_line_locals_set)
-        self.prev_line_locals_dict.update(deepcopy(curr_line_locals))
+        self.prev_line_locals_dict.update(curr_line_locals_dict)
 
     def get_assignment_and_expression(self):
         equals_idx = self.prev_line_code.index("=")
@@ -222,6 +224,8 @@ class Function:
             in new_variables
         }
         # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
+        if self.function_transition and not changed_values:
+            return
 
         # Note on classes:
         #     def Vector(x, y)
@@ -233,6 +237,7 @@ class Function:
             self.self_in_locals = True
             print("============== self in locals, returning...")
             return
+        # todo: this call should not be done here
         self.gather_additional_data(changed_values)
         self.replace_old_values(changed_values)
 
@@ -273,13 +278,16 @@ class Function:
                 1. non-simple assignment  ie: x = "a string".split() * 2 + ["a"]
                 2. variable has new value ie: x = 11; x = 22
         """
-        if self.need_to_print_function:
-            # here, we return BEFORE entering a new function
-            # print("need to print function, returning...")
-            return
+        # if self.function_transition and not changed_values:
+        #     # print(f"function_transition, changed_values: {changed_values}")
+        #     # here, we return BEFORE entering a new function
+        #     # print("need to print function, returning...")
+        #     return
 
+        # print("before additional line", changed_values)
         self.construct_formatted_line(changed_values)
         if not self.is_loop():
+            # changed_values is popping !!!
             self.construct_additional_line(changed_values)
 
 
@@ -368,7 +376,7 @@ class Function:
             if assignment in changed_values:
                 return assignment, changed_values[assignment]
             if len(changed_values) == 1:
-                return changed_values.popitem()
+                return deepcopy(changed_values).popitem()
             return assignment, expression
 
         if "self" in assignment or "self" in expression:
@@ -429,7 +437,7 @@ class Function:
             # print("LOOPPPPP, changed_values", changed_values, "is_assignment", is_assignment, "prev_line_code", self.prev_line_code)
         elif len(changed_values) > 0 or is_assignment:
             self.in_loop_declaration = False
-            assignment, expression = self.get_assignment_and_expression()
+            # assignment, expression = self.get_assignment_and_expression()
             var_names, values = self.extract_variable_assignments(changed_values)
             self.lines[-1].create_formatted_line(var_names, values)
 
@@ -497,8 +505,6 @@ class Function:
         elif isinstance(value, (tuple, list)):
             return tuple(self.make_hashable(idk) for idk in value)
         # todo: change to static hasattr?
-        elif hasattr(value, "__iter__"): # Note: untested
-            return tuple(self.make_hashable(idk) for idk in value)
         elif hasattr(value, "__hash__"):
             return value
         else:
@@ -644,8 +650,7 @@ class Trace:
                 self.print_on_func_call(frame.f_code.co_filename, name, fxn_args)
                 self.first_function = False
             else:
-                # self.need_to_print_function = True
-                self.function_stack[-1].need_to_print_function = True
+                self.function_stack[-1].function_transition = True
 
             if self.trace_this_func(name):
                 return self.trace_lines
@@ -703,8 +708,6 @@ class Trace:
             maybe pass a reference ? feels wrong but is simple to make sure everything is up to date
         """
         # clear last results
-        self.printed_line.clear()
-        self.additional_line.clear()
         # maybe we pass this as a reference
         self.function_stack[-1].latest_execution_id = self.execution_id
 
@@ -730,26 +733,25 @@ class Trace:
         self.function_stack[-1].add_original_code()
 
 
+        # if not self.function_stack[-1].function_transition:
         self.function_stack[-1].update_stored_vars(curr_line_locals_dict)
-        # then
-        # self.update_stored_vars(curr_line_locals_dict)
         self.execution_id =  self.function_stack[-1].latest_execution_id
-
+        # else:
+        #     print(self.function_stack[-1].lines[-1])
 
         self.function_stack[-1].print_line()
 
-        # if self.function_stack[-1].need_to_print_function and not self.function_stack[-1].just_printed_return:
-        if self.function_stack[-1].need_to_print_function:
+        if self.function_stack[-1].function_transition:
             # append set() to prev_line_locals_stack, then add the initial function args to this set
             if not self.function_stack[-1].just_returned:
                 self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
-            self.function_stack[-1].need_to_print_function = False
-            print("new function", self.function_stack)
+            self.function_stack[-1].function_transition = False
+            # print("new function", self.function_stack)
         if self.function_stack[-1].just_returned:
             self.function_stack[-1].just_returned = False
         if event == 'return':
             self.on_return(frame, arg)
-            print("after return", self.function_stack)
+            # print("after return", self.function_stack)
             if len(self.function_stack) == 1 and self.function_stack[0] == None:
                 return
 
