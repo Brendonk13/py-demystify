@@ -43,43 +43,30 @@ class LineInfo:
         return self.__repr__()
 
     def create_formatted_line(self, var_names, values):
-        # line = [cf.cyan("#")]
         line = cf.cyan("  #") if self.print_mode == "console" else "  #"
         num_vars = len(var_names)
         # construct formatted_line
         for i in range(num_vars):
             var_name, value = var_names[i], values[i]
-            # line += [f" {var_name} = {value}"]
-            # line = f"{line}"
             new_part = f" {var_name} = {value}"
 
             # add a comma for all but last element
-            # if 0 <= i < num_vars - 1:
             if  i < num_vars - 1:
                 new_part += ","
             line += new_part
         self.formatted_line = "".join(line)
-        # for var_name, value in zip(var_names, values):
-        #     line += [
 
 
     def print_line(self):
-        # print(self.print_mode)
         if self.print_mode == "json":
             return
-        # original_line = "".join((cf.cyan(f'*  {self.line_number} │  '), f'{self.original_line.lstrip(" ")}'))
-        # first_part = f"{}"
+        # todo: add uncolored_formatted_line
         original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{self.original_line.lstrip(' ')}"
         formatted_line = f"{original_line} {self.formatted_line}"
-        # TODO: add other parts of formatted line -- check its done correct
         print(formatted_line)
         if self.additional_line:
             print(self.additional_line)
-        # original_line = self.lines[-1].get_original_line()
-        # formatted_line = self.lines[-1].get_original_line()
-        # additional_line = self.lines[-1].get_original_line()
-    # def add_loop(self):
-    #     self.loop = []
+
 
     def add_return(self, fxn_name, returned_value):
         self.type = "return"
@@ -150,14 +137,10 @@ class Function:
 
     def print_line(self):
         if self.lines:
-            # print(self.lines[-1])
             self.lines[-1].print_line()
-    #     original_line = self.lines[-1].get_original_line()
-    #     formatted_line = self.lines[-1].get_original_line()
-    #     additional_line = self.lines[-1].get_original_line()
+
 
     def add_exception(self, function_name, arg):
-        # KEEP
         # todo: replace function_name with self.function_signature
         tb = ''.join(traceback.format_exception(*arg)).strip()
         print('%s raised an exception:%s%s' % (function_name, os.linesep, tb))
@@ -166,10 +149,8 @@ class Function:
     def print_on_return(self, fxn_name, arg):
         # reset this value once we leave a function (we set this to true if self in locals)
         self.self_in_locals = False
-        # def __init__(self, code, execution_id, type, line_number):
         self.lines[-1].add_return(fxn_name, arg)
         self.lines[-1].print_return()
-        # print(f"{cf.cyan(f'{fxn_name} returned')} {arg}")
 
 
     def initialize_locals(self, curr_line_locals):
@@ -179,16 +160,13 @@ class Function:
         self.prev_line_locals_dict.update(deepcopy(curr_line_locals))
 
     def get_assignment_and_expression(self):
-        # print("PREV_LINE", self.prev_line_code)
         equals_idx = self.prev_line_code.index("=")
         assignment, expression = self.prev_line_code[:equals_idx].strip(), self.prev_line_code[equals_idx+1:].strip()
         return assignment, expression
 
 
     def store_nested_objects(self, curr_line_locals_dict, locals_with_objects):
-        # KEEP
         for name,value in curr_line_locals_dict.items():
-            # in self.prev_line_locals_stack[-1]
             if not self.is_custom_object(name, value):
                 continue
             tracked_name = f"{self.object_prefix}{name}"
@@ -196,24 +174,20 @@ class Function:
             # ie: fields = {"sub_object": <__main__.SomeOtherObject object at 0x7fb745d8e710>, "z": 10}
             fields = vars(value)
             fields_copy = deepcopy(fields)
-            # print("tracked_name, fields", tracked_name, fields)
             locals_with_objects[tracked_name] = fields_copy
             del locals_with_objects[name]
             self.store_nested_objects(fields, locals_with_objects[tracked_name])
 
     def is_custom_object(self, name, value):
-        # MOVE
         # https://docs.python.org/3/library/inspect.html#fetching-attributes-statically
         # -- hasatr can cause code to execute !!!
         # todo: CHANGE
-        # return name != "self" and hasattr(value, "__dict__")
         return hasattr(value, "__dict__")
         # https://stackoverflow.com/a/52624678
         #^ wont work with __slots__
         # will only detect user defined types
 
     def add_object_fields_to_locals(self, curr_line_locals_dict):
-        # KEEP
         """
             - create deepcopy of function locals
             - for each object in local, extract its fields/values and store that instead
@@ -238,10 +212,6 @@ class Function:
             will look thru lists and return the values changed in a list as well
             as the indices where they are found.
         """
-        # global SELF_IN_LOCALS
-        # print("prev_line_locals", prev_line_locals_stack[-1])
-
-        # curr_line_locals_set, curr_line_locals_dict, curr_line_objects = add_object_fields_to_locals(curr_line_locals_dict)
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals_dict)
         new_variables = curr_line_locals_set - self.prev_line_locals_set
 
@@ -275,8 +245,6 @@ class Function:
             # self.lines[-1].formatted_line = ""
             # -- maybe create a LineInfo object that has changed values and each function has an array of these
             return
-        # if not self.assigned_constant():
-            # interpret_expression(changed_values, curr_line_objects)
 
         self.interpret_expression(changed_values)
 
@@ -290,12 +258,8 @@ class Function:
             if var_name.startswith(self.object_prefix):
                 # remove prefix: _TRACKED
                 var_name = var_name[9:]
-            # if self.print_mode == "console":
             colored_new_part = cf.red(f"  {var_name}={old_value}") + " ──> " + cf.green(f"new value: {new_value}")
-            # else:
             uncolored_new_part = f"  {var_name}={old_value}" + " ──> " + f"new value: {new_value}"
-            # if self.print_mode == "console":
-            #     new_part = uncolored_new_part
             if added_additional_line:
                 self.lines[-1].additional_line += ","
                 self.lines[-1].uncolored_additional_line += ","
@@ -309,7 +273,6 @@ class Function:
                 1. non-simple assignment  ie: x = "a string".split() * 2 + ["a"]
                 2. variable has new value ie: x = 11; x = 22
         """
-        # global self.additional_line
         if self.need_to_print_function:
             # here, we return BEFORE entering a new function
             # print("need to print function, returning...")
@@ -318,14 +281,9 @@ class Function:
         self.construct_formatted_line(changed_values)
         if not self.is_loop():
             self.construct_additional_line(changed_values)
-            # if self.lines:
-            #     print("additional: ", self.lines[-1].additional_line)
 
 
-
-    # def extract_variable_assignments(changed_values, curr_line_objects, var_names, values):
     def extract_variable_assignments(self, changed_values):
-        # KEEP
         """ Can do:
             - x = y
             - a, b = "a", x
@@ -336,15 +294,10 @@ class Function:
             - a, b = "a", vect.x
             - vect.x, vect.y = x, y
         """
-        # global self.printed_line
         value: Any = ""
         var_name = ""
 
-        # assignment, expression = [code.strip() for code in self.prev_line_code.split('=')]
         assignment, expression = self.get_assignment_and_expression()
-        # equals_idx = self.prev_line_code.index("=")
-        # assignment, expression = self.prev_line_code[:equals_idx].strip(), self.prev_line_code[equals_idx+1:].strip()
-        # assignment, expression = [code.strip() for code in self.prev_line_code.split('=')]
         # print("====== assignment", assignment, "expression", expression, "changed_values", changed_values)
 
         if (
@@ -357,7 +310,6 @@ class Function:
             # THIS IS BECAUSE WE DONT CHECK FOR CHANGES TO SELF CURRENTLY THEREFORE CHANGED_VALUES = {}
             var_name = expression
             value = self.prev_line_locals_dict[var_name]
-            # self.PRINTED_LINE += [cf.bold(cf.cyan(" #")), f"{var_name} = {value}"]
             print("extract_variable_assignments no changed values")
             return [var_name], [value]
 
@@ -375,12 +327,9 @@ class Function:
                 var_names.append(var_name)
                 values.append(value)
             return var_names, values
-            # extract_variable_assignments(changed_values, curr_line_objects, 
-            # fuck with self.PRINTED_LINE here instead of making this too general
         elif len(changed_values) == 1:
             # print("changed_values", changed_values, "name,value", var_name, value)
             var_name, value = self.handle_object_expression(assignment, expression, changed_values)
-            # print("acjkndas")
             return [var_name], [value]
         else:
             # raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
@@ -388,7 +337,6 @@ class Function:
 
 
     def generate_object_name(self, field_chain, changed_values):
-        # KEEP WITH handle_object_expression
         name = ""
         chained_object = changed_values
         # need to iterate over changed_values
@@ -399,13 +347,10 @@ class Function:
                 chained_object = chained_object[transformed_name]
             else:
                 name = f"{name}.{curr_name}" if name else name
-        # print("generated object name", name)
         return name
 
 
-    # def handle_object_expression(assignment, expression, var_name, value):
     def handle_object_expression(self, assignment, expression, changed_values):
-        # CAN MOVE
         # need to add a field for the actual value to make it clear for when value is the string "vect.x"
         """
             assignment ex.) "vect.x"  || "x"
@@ -417,9 +362,6 @@ class Function:
             if its not an object assignment then we return the input
             if its an object, then we get its value from value by using the field name
         """
-        # working output for LHS without MAssiggnment
-        # assignment vect.x , expression x , var_name _TRACKED_vect , value {'x': 10, 'y': 1}
-
         # print(f"handle_object_expression assignment: {assignment}, expression: {expression}, changed_values: {changed_values}")
 
         if "." not in assignment and "." not in expression:
@@ -427,9 +369,7 @@ class Function:
                 return assignment, changed_values[assignment]
             if len(changed_values) == 1:
                 return changed_values.popitem()
-                # return name, value
             return assignment, expression
-            # return assignment, expression
 
         if "self" in assignment or "self" in expression:
             if assignment in changed_values:
@@ -440,7 +380,6 @@ class Function:
         expression_field_chain = expression.split(".")
         object_field_assigned = len(assignment_field_chain) > 1
         object_field_in_expression = len(expression_field_chain) > 1
-        # value
 
         var_name = assignment
         if object_field_assigned:
@@ -463,7 +402,6 @@ class Function:
     # vect={'y': 22, '_TRACKED_x': {'o': 0}} ──> new value: {'y': 22, '_TRACKED_x': {'o': 99}}
 
         return var_name, value
-        # return assignment, expression
 
 
     def interpret_expression(self, changed_values):
@@ -492,22 +430,9 @@ class Function:
         elif len(changed_values) > 0 or is_assignment:
             self.in_loop_declaration = False
             assignment, expression = self.get_assignment_and_expression()
-            # code = [code.strip() for code in self.prev_line_code.split('=')]
-            # assignment, expression = code
-            # var_names, values = [], []
-            # extract_variable_assignments(changed_values, curr_line_objects, var_names, values)
             var_names, values = self.extract_variable_assignments(changed_values)
-            # print("OUTPUT var_names: ", var_names, "values:", values)
-            # for each variable change, store: assigned_var_name, 
-            # self.printed_line += [cf.bold(cf.cyan(" #"))]
-            # self.printed_line += [cf.bold(cf.cyan(" #"))]
-            # print("var_names", var_names, "values:", values)
             self.lines[-1].create_formatted_line(var_names, values)
-            # num_vars = len(var_names)
-            # # construct formatted_line
-            # for i in range(num_vars):
-            #     var_name, value = var_names[i], values[i]
-            #     self.lines[-1].formatted_line += [f" {var_name} = {value},"] if 0 <= i < num_vars - 1 else [f" {var_name} = {value}"]
+
 
 
     # change name(s) since I store var_name, value tuples, not key_val tup's
@@ -523,7 +448,6 @@ class Function:
 
 
     def replace_old_values(self, changed_values):
-        # KEEP
         # need to update since this is a set of pairs so we cant just update the value for this variable
         # remove old values according to changed_values
         # they are different here, the dict has the new values already
@@ -570,12 +494,11 @@ class Function:
         elif isinstance(value, dict):
             # todo: recurse over nested dicts
             return tuple(self.make_hashable(idk) for idk in value.items())
-        # elif isinstance(value, tuple):
         elif isinstance(value, (tuple, list)):
             return tuple(self.make_hashable(idk) for idk in value)
-        # elif isinstance(value, list):
-        #     # return self.make_hashable(tuple(value))
-        #     return tuple(self.make_hashable(idk) for idk in value)
+        # todo: change to static hasattr?
+        elif hasattr(value, "__iter__"): # Note: untested
+            return tuple(self.make_hashable(idk) for idk in value)
         elif hasattr(value, "__hash__"):
             return value
         else:
@@ -586,7 +509,6 @@ class Function:
         hashable_locals = set()
         for var_name, value in locals:
             value = self.make_hashable(value)
-            # print(f"var_name: {var_name}, value: {value}, type: {type(value)}")
             hashable_locals.add((var_name, value))
         return hashable_locals
 
@@ -600,12 +522,8 @@ class Function:
 
     def add_original_code(self):
         if self.just_printed_return:
-            # print("JUST PRINTED RTEURN")
             self.just_printed_return = False
             return
-
-        # no print on first call (where value isss empty string
-        # if self.function_stack[-1].prev_line_code:
 
         if self.prev_line_code == "":
             return
@@ -616,12 +534,10 @@ class Function:
         self.lines.append(LineInfo(self.prev_line_code, self.latest_execution_id, "code", self.prev_line_number, self.print_mode))
         self.latest_execution_id += 1
 
-        # self.printed_line += [cf.cyan(f'*  {self.prev_line_num} │  '), f'{self.prev_line_code.lstrip(" ")}']
 
     def add_json(self, json):
         # this will be called before the function is returned
         self.lines[-1].function_json = json
-        # todo: verify this is added to correct spot, maybe need to add it to the next line
 
     def to_json(self):
         self.construct_json_object(self.lines)
@@ -677,28 +593,10 @@ class Trace:
     """
     def __init__(self):
         cf.use_style("solarized")
-        self.prev_line = []
         self.first_function = True
-        self.need_to_print_function = False
-        # self.just_printed_return = False
-        self.printed_line = []
-        self.additional_line = []
-        self.self_in_locals = False
-
-        self.prev_line_code = ""
         self.object_prefix = "_TRACKED_"
         self.execution_id = 0
-        # is a set of var_name, val tuples.
-        # ie: == { ('var_name1', "value1"), ('var_name2', 123), ... }
-        # prev_line_locals_stack = set()
-        # need an extra data structure in these lists since __exit__ is part of the tracing
-        self.prev_line_locals_stack = [set()]
-        self.prev_line_locals_stack_dict = [{}]
-        # self.prev_line_num = [0]
-        self.prev_line_num = []
         self.prev_trace = sys.gettrace()
-
-        # todo: how to initialize since we need to make sure to not trace __enter__, __exit__
         self.function_stack = []
 
 
@@ -712,9 +610,7 @@ class Trace:
 
     def __enter__(self):
         self.prev_trace = sys.gettrace()
-        # init_tracer_globals()
         self.function_stack.append(None)
-        # self.function_stack.append(Function(file_name, self.object_prefix, signature, self.execution_id + 1))
         sys.settrace(self.once_per_func_tracer)
 
 
@@ -723,14 +619,10 @@ class Trace:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         # NOTE: this is called when a error occurs internally
-        # print("__EXIT__ TRACE, function_stack:", self.function_stack)
-        # print(f"__EXIT__ TRACE, exc_type: {exc_type}, exc_value: {exc_value}, exc_traceback: {exc_traceback}")
         sys.settrace(self.prev_trace) # has to be the first line or we get weird errors
 
     def once_per_func_tracer(self, frame, event, arg):
         # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
-        # global FIRST_FUNCTION
-        # global NEED_TO_PRINT_FUNCTION
         name = frame.f_code.co_name
         if event == 'call':
             print(f"first_function: {self.first_function}, function_stack: {self.function_stack}")
@@ -771,23 +663,16 @@ class Trace:
 
     def on_return(self, frame, arg):
         # get json data for this function before we delete its data
-        # self.print_on_return(frame.f_code.co_name, arg)
         self.function_stack[-1].print_on_return(frame.f_code.co_name, arg)
         json = self.function_stack[-1].to_json()
         # TODO: store this json in the calling class
-        # if len(self.function_stack) == 1:
-        # pprint(json)
-            # self.function_stack
 
         # TODO: set flag so that we dont print the original function as if its getting called again
         # -- this is whats causing my error, I add the function to the stack twice
         # ie: currently, v = Vector() will do "calling __init__..."
         # then when __init__ returns, it will print "calling test_custom_objects" before doing the next line in the original function
 
-        # print("before pop", self.function_stack)
         # pop the function's variables
-        # self.prev_line_locals_stack.pop()
-        # self.prev_line_locals_stack_dict.pop()
         self.function_stack.pop()
         if not self.done_tracing():
             self.function_stack[-1].add_json(json)
@@ -796,7 +681,8 @@ class Trace:
             self.function_stack[-1].just_returned = True
         else:
             # not sure if this is the correct json
-            pprint(json, sort_dicts=False)
+            if False:
+                pprint(json, sort_dicts=False)
         # print("AFTER pop", self.function_stack)
 
 
@@ -823,8 +709,6 @@ class Trace:
         self.function_stack[-1].latest_execution_id = self.execution_id
 
         curr_line_locals_dict = frame.f_locals #.copy()
-        # curr_line_locals_set = convert_to_set(curr_line_locals_dict.items())
-        # print("CURR LOCALS", curr_line_locals_dict)
         if event == 'exception':
             # TODO
             name = frame.f_code.co_name
@@ -838,21 +722,11 @@ class Trace:
             # return
 
         if not self.function_stack[-1].prev_line_locals_dict:
-        # if not self.prev_line_locals_stack[-1]:
             # appended for each new function call so we have variables local to the current function
             # this happens when new functions are called and all the function args are added to locals at once right below
-            # self.prev_line_locals_stack[-1].update(curr_line_locals_set)
             self.function_stack[-1].initialize_locals(curr_line_locals_dict)
 
-            # curr_line_locals_set = self.convert_to_set(curr_line_locals_dict.items())
-            # # print("========== prev_line_locals[-1] is empty, new:", curr_line_locals_set)
-            # self.prev_line_locals_stack[-1].update(curr_line_locals_set)
-            # self.prev_line_locals_stack_dict[-1].update(deepcopy(curr_line_locals_dict))
-
-        # fn = self.function_stack[-1]
-        # fn.print_mode = "console"
         # prints the current line about to execute
-        # self.function_stack[-1].add_original_code()
         self.function_stack[-1].add_original_code()
 
 
@@ -863,10 +737,6 @@ class Trace:
 
 
         self.function_stack[-1].print_line()
-        # print(self.function_stack.lines[-1].printed_line)
-        # print(*self.printed_line)
-        # if self.additional_line:
-        #     print(*self.additional_line)
 
         # if self.function_stack[-1].need_to_print_function and not self.function_stack[-1].just_printed_return:
         if self.function_stack[-1].need_to_print_function:
@@ -884,10 +754,7 @@ class Trace:
                 return
 
         # do this at the end since update_locals uses prev_line_code
-        # self.function_stack[-1].add_next_line(next_line_executed, frame.f_lineno)
         self.function_stack[-1].add_next_line(frame)
-        # self.update_line_code(next_line_executed)
-        # self.update_line_num(frame.f_lineno)
 
 
 
@@ -899,17 +766,9 @@ class Trace:
         # this stays here since it inits stuff
         name = frame.f_code.co_name
         fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
-        # NOTE: can get more detailed call info: https://docs.python.org/3/library/inspect.html#inspect.getcallargs
-        # also here: https://docs.python.org/3/library/inspect.html#inspect.formatargvalues
-        # or: https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
-        # inspect has a lot of functionality for all sorts of details for function calls
         self.print_on_func_call(frame.f_code.co_filename, name, fxn_args)
 
         self.function_stack[-1].initialize_locals(curr_line_locals_dict)
-
-        # curr_line_locals_set = self.convert_to_set(curr_line_locals_dict.items())
-        # self.prev_line_locals_stack[-1].update(curr_line_locals_set)
-        # self.prev_line_locals_stack_dict[-1].update(deepcopy(curr_line_locals_dict))
 
         # print("new function, just made locals:", self.prev_line_locals_stack[-1])
 
@@ -923,8 +782,6 @@ class Trace:
     def print_on_func_call(self, file_name, fxn_name, fxn_args):
         # add to variable stack
         # pop from function stack when I leave)
-        # self.prev_line_locals_stack.append(set())
-        # self.prev_line_locals_stack_dict.append(dict())
         signature = fxn_name + fxn_args
         self.add_new_function(file_name, signature)
         # TODO: move  this line elsewhere
