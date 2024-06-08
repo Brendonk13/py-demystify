@@ -2,6 +2,17 @@ import inspect
 from pprint import pprint
 
 
+def get_file_name(frame):
+    return frame.f_code.co_filename
+
+def get_fxn_name(frame):
+    return frame.f_code.co_name
+
+def get_fxn_signature(frame):
+    fxn_name = get_fxn_name(frame)
+    fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+    return fxn_name + fxn_args
+
 # Define a function to explore Python frame objects
 def investigate_frames(current_frame):
     # Print the current frame's outer frames and their details

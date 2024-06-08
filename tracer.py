@@ -11,7 +11,7 @@ import traceback
 from re import search
 from colorama import Fore, Back, Style, init
 import colorful as cf
-from helpers import investigate_frames, print_all
+from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
 
 
 
@@ -31,7 +31,7 @@ class LineInfo:
         self.line_number = line_number
         # means that we produce a json file
         self.print_mode = print_mode
-        self.function_json = []
+        self.fxn_json = []
 
         # not sure if I need this as a field
         self.changed_values = {}
@@ -43,7 +43,7 @@ class LineInfo:
         return self.__repr__()
 
     def create_formatted_line(self, var_names, values):
-        line = cf.cyan("  #") if self.print_mode == "console" else "  #"
+        line = cf.cyan("  #") if self.print_mode == "debug" else "  #"
         num_vars = len(var_names)
         # construct formatted_line
         line_has_variables = False
@@ -74,15 +74,18 @@ class LineInfo:
             print(self.additional_line)
 
 
-    def add_return(self, fxn_name, returned_value):
+    def add_return(self, fxn_name, fxn_signature, returned_value):
         self.type = "return"
         self.returned_value = returned_value
         self.returned_function = fxn_name
+        self.fxn_signature = fxn_signature
 
     def print_return(self):
         if self.type != "return":
             raise ValueError(f"Cannot print return for line: {self}")
-        print(f"{cf.cyan(f'{self.returned_function} returned')} {self.returned_value}")
+        if self.print_mode == "debug":
+            # print(f"{cf.yellow(f'-> {self.returned_function} returned')} {cf.cyan(self.returned_value)}")
+            print(f"{cf.yellow(f'-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
 
 
 
@@ -94,19 +97,24 @@ class Function:
 
     maybe this only stores the variables and handles finding new values through implementing __hash__
     """
-    def __init__(self, file_name, object_prefix, function_signature, execution_id):
+    # def __init__(self, file_name, object_prefix, fxn_signature, execution_id, fxn_name):
+    def __init__(self, frame, execution_id, object_prefix="_TRACKED_"):
         # need info from the previous function
         self.prev_line_locals_set = set()
         self.prev_line_locals_dict = dict()
+        file_name = get_file_name(frame)
+        fxn_name = get_fxn_name(frame)
+        fxn_signature = get_fxn_signature(frame)
+
         # -- Note: even if we used a database to write intermediate results to reduce memory complexity, we would still need
         # to store the sets/dicts of locals in memory since we need the actual object references and types, etc
         # the real memory hog will be these variables, thus: a database wont help with the bottleneck and we dont need it
         # so the question is: how much will a database help ?
-        self.type = "function_start"
-        # used for when self.type = "function_call" || "loop"
+        self.type = "fxn_start"
+        # used for when self.type = "fxn_call" || "loop"
 
-        # note: main tracer will need to find execution_id from other spots often: --> self.function_stack[-1].lines[-1].execution_id
-        # cuz the main loop will see a new function and will have to iterate check self.function_stack[-1].lines[-1].execution_id
+        # note: main tracer will need to find execution_id from other spots often: --> self.fxn_stack[-1].lines[-1].execution_id
+        # cuz the main loop will see a new function and will have to iterate check self.fxn_stack[-1].lines[-1].execution_id
 
         self.print_mode = "json"
         self.lines = []
@@ -117,13 +125,14 @@ class Function:
 
         self.object_prefix = object_prefix
         self.file_name = file_name
-        self.function_signature = function_signature
+        self.fxn_signature = fxn_signature
         self.execution_id = execution_id
         self.latest_execution_id = execution_id
+
         # need to ensure that if a new function is called, that the next line has the correct execution_id
         # need one source of truth for this in the root tracer class
         # -- now we write to the JSON file here I think, then we 
-        self.function_transition = False
+        self.fxn_transition = False
         self.just_printed_return = False
         self.just_returned = False
         self.prev_line_code = ""
@@ -132,23 +141,28 @@ class Function:
         # self.caller_execution_id = sjdcnkasjdncdjka
 
     def __repr__(self):
-        return f"Function(signature={self.function_signature})"
+        return f"Function(signature={self.fxn_signature})"
 
     def print_line(self):
         if self.lines:
             self.lines[-1].print_line()
 
+    def print_on_func_call(self, fxn_signature, line_number):
+        self.lines.append(LineInfo(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
+        self.latest_execution_id += 1
+        if self.print_mode == "debug":
+            print(cf.yellow(f'... calling {fxn_signature}'))
 
-    def add_exception(self, function_name, arg):
-        # todo: replace function_name with self.function_signature
+
+    def add_exception(self, fxn_name, arg):
+        # todo: replace fxn_name with self.fxn_signature
         tb = ''.join(traceback.format_exception(*arg)).strip()
-        print('%s raised an exception:%s%s' % (function_name, os.linesep, tb))
-        pass
+        print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
 
-    def print_on_return(self, fxn_name, arg):
+    def print_on_return(self, fxn_name, fxn_signature, returned_value):
         # reset this value once we leave a function (we set this to true if self in locals)
         self.self_in_locals = False
-        self.lines[-1].add_return(fxn_name, arg)
+        self.lines[-1].add_return(fxn_name, fxn_signature, returned_value)
         self.lines[-1].print_return()
 
 
@@ -223,8 +237,11 @@ class Function:
             for key,_
             in new_variables
         }
-        if self.function_transition and not changed_values:
+        if self.fxn_transition and not changed_values:
             return
+        if self.is_assignment():
+            self.in_loop_declaration = False
+        # if self.is_loo
 
         # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
 
@@ -264,8 +281,8 @@ class Function:
             if var_name.startswith(self.object_prefix):
                 # remove prefix: _TRACKED
                 var_name = var_name[9:]
-            colored_new_part = cf.red(f"  {var_name}={old_value}") + " ──> " + cf.green(f"new value: {new_value}")
-            uncolored_new_part = f"  {var_name}={old_value}" + " ──> " + f"new value: {new_value}"
+            colored_new_part = cf.red(f"  {var_name}={old_value}") + " --> " + cf.green(f"new value: {new_value}")
+            uncolored_new_part = f"  {var_name}={old_value}" + " --> " + f"new value: {new_value}"
             if added_additional_line:
                 self.lines[-1].additional_line += ","
                 self.lines[-1].uncolored_additional_line += ","
@@ -279,16 +296,16 @@ class Function:
                 1. non-simple assignment  ie: x = "a string".split() * 2 + ["a"]
                 2. variable has new value ie: x = 11; x = 22
         """
-        # if self.function_transition and not changed_values:
-        #     # print(f"function_transition, changed_values: {changed_values}")
+        # if self.fxn_transition and not changed_values:
+        #     # print(f"fxn_transition, changed_values: {changed_values}")
         #     # here, we return BEFORE entering a new function
         #     # print("need to print function, returning...")
         #     return
 
-        # print("before additional line", changed_values)
         self.construct_formatted_line(changed_values)
         if not self.is_loop():
             # changed_values is popping !!!
+            # print("before additional line", changed_values)
             self.construct_additional_line(changed_values)
 
 
@@ -413,12 +430,11 @@ class Function:
         return var_name, value
 
 
-    def interpret_expression(self, changed_values):
+    def is_assignment(self):
         # x = "="
         # x.add(" = ")
         # fn(" = ")
-        has_bracket = "(" in self.prev_line_code
-        is_assignment = (
+        return (
             # Note: this doesnt work for func().value = 10 -- it says if there are "(", "=", and "=" is before "(" then its an assignment
             # -- actually it usually works, cuz if changed_values: then it will run, but it wont if you do func().value = 10 and value is already 10
             "=" in self.prev_line_code and "(" in self.prev_line_code and self.prev_line_code.index("=") < self.prev_line_code.index("(")
@@ -426,8 +442,9 @@ class Function:
         # this is wrong, what if the equals sign is in a string
         # what if this just returns things instead of printing them, then I can do multiple assignments recursively...
         # assuming no spaces means its getting assigned a variable such as self.x = x
-        if is_assignment:
-            self.in_loop_declaration = False
+
+    def interpret_expression(self, changed_values):
+        has_bracket = "(" in self.prev_line_code
 
         if self.is_loop():
             # print("changed_values", changed_values)
@@ -436,8 +453,8 @@ class Function:
             self.lines[-1].create_formatted_line(list(changed_values.keys()), list(changed_values.values()))
             # HOW TO ENFORCE NOT HAVING ADDITIONAL_LINE FOR LOOPS
             # print("LOOPPPPP, changed_values", changed_values, "is_assignment", is_assignment, "prev_line_code", self.prev_line_code)
-        elif len(changed_values) > 0 or is_assignment:
-            self.in_loop_declaration = False
+        elif len(changed_values) > 0 or self.is_assignment():
+            # self.in_loop_declaration = False
             # assignment, expression = self.get_assignment_and_expression()
             var_names, values = self.extract_variable_assignments(changed_values)
             self.lines[-1].create_formatted_line(var_names, values)
@@ -474,11 +491,14 @@ class Function:
 
         # purpose is to support multi-line loop declarations but maybe this should be done diff
         if self.in_loop_declaration:
+            # print("================ IN LOOP DECLARATION", self.lines[-1])
             return True
         # todo: set in_loop_declaration to false
         stripped_code = self.prev_line_code.lstrip()
         in_loop = " " in stripped_code and stripped_code.split()[0] in ("for", "while")
-        if self.in_loop_declaration or in_loop:
+        # if self.in_loop_declaration or in_loop:
+        if in_loop:
+            # print(f"SET LOOP DECLARATION, stripped_code: {stripped_code}, self: {self}")
             self.in_loop_declaration = True
             return True
 
@@ -523,11 +543,12 @@ class Function:
         # print("added next line")
         skip_lane = "with" in self.prev_line_code
         next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+        # print("prev_line", self.prev_line_code, "next line", next_line_executed)
         self.prev_line_code = next_line_executed
         self.prev_line_number = frame.f_lineno
 
 
-    def add_original_code(self):
+    def add_line(self):
         if self.just_printed_return:
             self.just_printed_return = False
             return
@@ -544,7 +565,7 @@ class Function:
 
     def add_json(self, json):
         # this will be called before the function is returned
-        self.lines[-1].function_json = json
+        self.lines[-1].fxn_json = json
 
     def to_json(self):
         self.construct_json_object(self.lines)
@@ -563,7 +584,7 @@ class Function:
                 # "formatted_line": line.formatted_line,
                 # "additional_line": line.uncolored_additional_line,
                 # "type": line.type,
-                "function_json": line.function_json,
+                "fxn_json": line.fxn_json,
             }
             # if line.type == "code":
             #     self.json[idx].update({
@@ -601,10 +622,17 @@ class Trace:
     def __init__(self):
         cf.use_style("solarized")
         self.first_function = True
-        self.object_prefix = "_TRACKED_"
         self.execution_id = 0
         self.prev_trace = sys.gettrace()
-        self.function_stack = []
+        self.fxn_stack = []
+
+        # todo: get value from env var
+        # debug prints in execution order: not clear for multiple functions
+        # console uses the json to print one function at a time
+        # file just writes a json file
+        self.print_mode = "debug"
+        # todo: get value from env var
+        self.object_prefix = "_TRACKED_"
 
 
     def __call__(self, function):
@@ -617,12 +645,12 @@ class Trace:
 
     def __enter__(self):
         self.prev_trace = sys.gettrace()
-        self.function_stack.append(None)
+        self.fxn_stack.append(None)
         sys.settrace(self.once_per_func_tracer)
 
 
     def done_tracing(self):
-        return not self.first_function and len(self.function_stack) == 1 and self.function_stack[0] is None
+        return not self.first_function and len(self.fxn_stack) == 1 and self.fxn_stack[0] is None
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         # NOTE: this is called when a error occurs internally
@@ -630,12 +658,12 @@ class Trace:
 
     def once_per_func_tracer(self, frame, event, arg):
         # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
-        name = frame.f_code.co_name
+        name = get_fxn_name(frame)
         if event == 'call':
-            print(f"first_function: {self.first_function}, function_stack: {self.function_stack}")
+            # print(f"first_function: {self.first_function}, fxn_stack: {self.fxn_stack}")
             if self.done_tracing():
                 return
-            fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+            # fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
             if "dictcomp" in name:
                 print("DICTCOMP")
                 return
@@ -648,10 +676,10 @@ class Trace:
                 print("GENEXPR")
                 return
             if self.first_function:
-                self.print_on_func_call(frame.f_code.co_filename, name, fxn_args)
+                self.add_new_function_call(frame)
                 self.first_function = False
             else:
-                self.function_stack[-1].function_transition = True
+                self.fxn_stack[-1].fxn_transition = True
 
             if self.trace_this_func(name):
                 return self.trace_lines
@@ -667,10 +695,10 @@ class Trace:
 
 
 
-    def on_return(self, frame, arg):
+    def on_return(self, frame, returned_value):
         # get json data for this function before we delete its data
-        self.function_stack[-1].print_on_return(frame.f_code.co_name, arg)
-        json = self.function_stack[-1].to_json()
+        self.fxn_stack[-1].print_on_return(frame.f_code.co_name, get_fxn_signature(frame), returned_value)
+        json = self.fxn_stack[-1].to_json()
         # TODO: store this json in the calling class
 
         # TODO: set flag so that we dont print the original function as if its getting called again
@@ -678,18 +706,19 @@ class Trace:
         # ie: currently, v = Vector() will do "calling __init__..."
         # then when __init__ returns, it will print "calling test_custom_objects" before doing the next line in the original function
 
+        # print("before pop", self.fxn_stack)
         # pop the function's variables
-        self.function_stack.pop()
+        self.fxn_stack.pop()
         if not self.done_tracing():
-            self.function_stack[-1].add_json(json)
+            self.fxn_stack[-1].add_json(json)
             # is this correct below here ? we're setting just_printed_return for a diff functin that returned (the popped one)
-            self.function_stack[-1].just_printed_return = True
-            self.function_stack[-1].just_returned = True
+            self.fxn_stack[-1].just_printed_return = True
+            self.fxn_stack[-1].just_returned = True
         else:
             # not sure if this is the correct json
-            if False:
+            if 0:
                 pprint(json, sort_dicts=False)
-        # print("AFTER pop", self.function_stack)
+        # print("AFTER pop", self.fxn_stack)
 
 
     def trace_lines(self, frame, event, arg):
@@ -700,8 +729,8 @@ class Trace:
             then at the end of this function, we get the new one from the function stack
             and the other function only updates this value if a printed line exists
             ie:
-                - set execution_id --> self.function_stack[-1].latest_execution_id = self.execution_id
-                - end of function --> self.execution_id = self.function_stack[-1].latest_execution_id
+                - set execution_id --> self.fxn_stack[-1].latest_execution_id = self.execution_id
+                - end of function --> self.execution_id = self.fxn_stack[-1].latest_execution_id
 
             this allows new functions to always have the right id
             and also allows the function object to determine if the value should be incremented based on the code found
@@ -710,88 +739,71 @@ class Trace:
         """
         # clear last results
         # maybe we pass this as a reference
-        self.function_stack[-1].latest_execution_id = self.execution_id
+        self.fxn_stack[-1].latest_execution_id = self.execution_id
 
         curr_line_locals_dict = frame.f_locals #.copy()
         if event == 'exception':
             # TODO
-            name = frame.f_code.co_name
-            fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
-            signature = name + fxn_args
+            fxn_name = get_fxn_name(frame)
+            # fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
+            signature = get_fxn_signature(frame)
             print('The function call: %s produced an exception:\n' % signature)
             tb = ''.join(traceback.format_exception(*arg)).strip()
-            print('%s raised an exception:%s%s' % (name, os.linesep, tb))
+            print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
             #set a flag to print nothing else
             # raise ValueError("EXCEPTION")
             # return
 
-        if not self.function_stack[-1].prev_line_locals_dict:
+        if not self.fxn_stack[-1].prev_line_locals_dict:
             # appended for each new function call so we have variables local to the current function
             # this happens when new functions are called and all the function args are added to locals at once right below
-            self.function_stack[-1].initialize_locals(curr_line_locals_dict)
+            self.fxn_stack[-1].initialize_locals(curr_line_locals_dict)
 
-        # prints the current line about to execute
-        self.function_stack[-1].add_original_code()
+        self.fxn_stack[-1].add_line()
 
-        self.function_stack[-1].update_stored_vars(curr_line_locals_dict)
+        self.fxn_stack[-1].update_stored_vars(curr_line_locals_dict)
         # update_stored_vars determines if this line should be added and if so, then execution_id is incrememented
         # this allows update_stored_vars to determine if self.execution_id should be incremented
-        self.execution_id = self.function_stack[-1].latest_execution_id
+        self.execution_id = self.fxn_stack[-1].latest_execution_id
 
-        self.function_stack[-1].print_line()
+        self.fxn_stack[-1].print_line()
 
-        if self.new_function_called():
-            self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
+        if self.new_fxn_called():
+            self.add_new_function_call(frame)
+            self.fxn_stack[-1].initialize_locals(curr_line_locals_dict)
+            # self.add_new_fxn_args_to_locals(frame, curr_line_locals_dict)
+
+        if self.fxn_stack[-1].just_returned:
+            self.fxn_stack[-1].just_returned = False
+        if self.fxn_stack[-1].fxn_transition:
+            self.fxn_stack[-1].fxn_transition = False
+            # print("new function", self.fxn_stack)
+
         if event == 'return':
             self.on_return(frame, arg)
-            # print("after return", self.function_stack)
-            if len(self.function_stack) == 1 and self.function_stack[0] == None:
+            # print("after return", self.fxn_stack)
+            if len(self.fxn_stack) == 1 and self.fxn_stack[0] == None:
                 return
-
-        # update variables
-        if self.function_stack[-1].function_transition:
-            # if function_transition and not just_returned, then it must be a new function called
-            # if not self.function_stack[-1].just_returned:
-            #     self.add_new_function_args_to_locals(frame, curr_line_locals_dict)
-            self.function_stack[-1].function_transition = False
-            # print("new function", self.function_stack)
-        if self.function_stack[-1].just_returned:
-            self.function_stack[-1].just_returned = False
-
-        # do this at the end since update_locals uses prev_line_code
-        self.function_stack[-1].add_next_line(frame)
+        # have this as an else for weird case:
+            # y = loop_fn();
+            # def loop_fn: for i in range(2): x = i
+            # NOTICE there is no return statement
+            # this will do add_next_line on the fxn with y = loop_fn()
+            # but the line added will be: for i in range(2)
+            # the final evaluation of the loop condition
+        else:
+            # do this at the end since update_locals uses prev_line_code
+            self.fxn_stack[-1].add_next_line(frame)
 
 
-    def new_function_called(self):
-        return self.function_stack[-1].function_transition \
-               and not self.function_stack[-1].just_returned
+    def new_fxn_called(self):
+        return self.fxn_stack[-1].fxn_transition \
+               and not self.fxn_stack[-1].just_returned
 
 
-    def add_new_function_args_to_locals(self, frame, curr_line_locals_dict):
-        """
-            Append set() to prev_line_locals_stack,
-            then add the initial function args to this set
-        """
-        # this stays here since it inits stuff
-        name = frame.f_code.co_name
-        fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
-        self.print_on_func_call(frame.f_code.co_filename, name, fxn_args)
-
-        self.function_stack[-1].initialize_locals(curr_line_locals_dict)
-
-        # print("new function, just made locals:", self.prev_line_locals_stack[-1])
-
-
-    def add_new_function(self, file_name, signature):
-        self.function_stack.append(Function(file_name, self.object_prefix, signature, self.execution_id + 1))
+    def add_new_function_call(self, frame):
+        self.fxn_stack.append(Function(frame, self.execution_id, self.object_prefix))
         # this causes immediate prints instead of deferring prints to this class
-        self.function_stack[-1].print_mode = "console"
-
-
-    def print_on_func_call(self, file_name, fxn_name, fxn_args):
-        # add to variable stack
-        # pop from function stack when I leave)
-        signature = fxn_name + fxn_args
-        self.add_new_function(file_name, signature)
-        # TODO: move  this line elsewhere
-        print(cf.yellow(f'... calling {signature}'))
+        self.fxn_stack[-1].print_mode = self.print_mode
+        self.fxn_stack[-1].print_on_func_call(get_fxn_signature(frame), frame.f_lineno)
+        self.execution_id += 1
