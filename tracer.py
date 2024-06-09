@@ -1,5 +1,6 @@
 import sys
 import dis
+import ast
 from pprint import pprint, pformat
 from copy import deepcopy
 from typing import Any, ItemsView, List, Type, Dict, Callable, Optional
@@ -14,7 +15,7 @@ import colorful as cf
 from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
 
 
-class LineInfo:
+class Line:
     def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str):
         # other: line_num
         self.original_line = code.lstrip(" ")
@@ -36,7 +37,7 @@ class LineInfo:
         self.changed_values = {}
 
     def __repr__(self):
-        return f"LineInfo(type={self.type}, line={self.original_line}, execution_id={self.execution_id}, additional_line: {self.uncolored_additional_line})"
+        return f"Line(type={self.type}, line={self.original_line}, execution_id={self.execution_id}, additional_line: {self.uncolored_additional_line})"
 
     def __str__(self):
         return self.__repr__()
@@ -89,6 +90,16 @@ class LineInfo:
     # def to_json(self):
 
 
+class Loop:
+    def __init__(self, start_idx, start_line_number):
+        # this an index into Function.lines so we can find the line where a loop started
+        self.start_idx = start_idx
+        # on the first iteration of a loop, we mark the line that comes after the loop
+        # then we know a loop is complete if the execution flow skips this line (due to failed loop condition)
+        self.first_loop_line = -1
+        # use this to help check if a loop is complete
+        self.start_line_number = start_line_number
+        self.end_idx = -1
 
 class Function:
     """
@@ -118,11 +129,11 @@ class Function:
         # cuz the main loop will see a new function and will have to iterate check self.fxn_stack[-1].lines[-1].execution_id
 
         self.print_mode = "json"
-        self.lines = []
+        self.lines: List[Line] = []
 
         self.in_loop_declaration = False
-        # loops = [LineInfo[], LineInfo[], LineInfo[], ..., LineInfo[], LineInfo[], LineInfo[]]
-        self.loops = []
+        # loops = [Line[], Line[], Line[], ..., Line[], Line[], Line[]]
+        self.loops: List[Loop]  = []
 
         self.object_prefix = object_prefix
         self.file_name = file_name
@@ -149,7 +160,7 @@ class Function:
             self.lines[-1].print_line()
 
     def print_on_func_call(self, fxn_signature, line_number):
-        self.lines.append(LineInfo(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
+        self.lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
         self.latest_execution_id += 1
         if self.print_mode == "debug":
             print(cf.yellow(f'... calling {fxn_signature}'))
@@ -267,7 +278,7 @@ class Function:
         # move if statement to function named: "construct_formatted_line()
         if self.assigned_constant():
             # self.lines[-1].formatted_line = ""
-            # -- maybe create a LineInfo object that has changed values and each function has an array of these
+            # -- maybe create a Line object that has changed values and each function has an array of these
             return
 
         self.interpret_expression(changed_values)
@@ -498,12 +509,12 @@ class Function:
     def is_loop(self):
         # purpose is to support multi-line loop declarations but maybe this should be done diff
         if self.in_loop_declaration:
-            print("================ IN LOOP DECLARATION", self.lines[-1])
+            # print("================ IN LOOP DECLARATION", self.lines[-1])
             return True
         # todo: set in_loop_declaration to false
         # if self.in_loop_declaration or in_loop:
         if self.first_loop_line():
-            print(f"SET LOOP DECLARATION, code: {self.prev_line_code}, self: {self}")
+            # print(f"SET LOOP DECLARATION, code: {self.prev_line_code}, self: {self}")
             self.in_loop_declaration = True
             return True
 
@@ -570,14 +581,48 @@ class Function:
         #     self.loops.append()
         if self.is_loop():
             line_type = "loop"
-            loop_idx = len(self.loops) - 1
-            # loops
-            # loops need to be nested and hierarchical
-        self.lines.append(LineInfo(self.prev_line_code, self.latest_execution_id, line_type, self.prev_line_number, self.print_mode))
+        self.lines.append(Line(self.prev_line_code, self.latest_execution_id, line_type, self.prev_line_number, self.print_mode))
         self.latest_execution_id += 1
-        if self.is_loop():
-            self.lines[-1].loop_idx = len(self.loops) - 1
 
+        # if self.currently_in_loop():
+        #     if self.first_line_after_loop():
+        #         # TODO: this will not work for loops with multiple line declarations
+        #         self.loops[-1].first_loop_line = self.prev_line_number
+        #     else:
+        #         x = True
+        #         # check if loop has just finished
+
+        # if self.first_loop_line():
+        #     # now check if this is our first time entering this loop
+        #     first_loop_iteration = False
+        #     if first_loop_iteration:
+        #         # take note of the first line for a loop, then we can easily find the start and end of a loop
+        #         loop_start_line_idx = len(self.lines) - 1
+        #         self.loops.append(Loop(loop_start_line_idx, self.prev_line_number))
+        #         # self.just_entered_loop = True
+        #         # self.lines[-1].
+        #     # self.lines[-1]
+        #     # also need to check if we just left a loop
+        #     # now need to check if this is a new nested loop or if its the first loop iteration
+        #     # or if its the first line but not first iteration of the loop
+        #     # loops
+        #     # loops need to be nested and hierarchical
+        # if self.is_loop():
+        #     self.lines[-1].loop_idx = len(self.loops) - 1
+
+
+    def first_line_after_loop(self):
+        return self.loops and self.loops[-1].start_idx == len(self.lines) - 2
+
+    def just_left_loop(self):
+        # TODO: NOTE DONE
+        # need to check that previous line[-2] is the start of a loop and that line[-1].line_number != IDK[-].first_loop_line
+        return self.loops and self.loops[-1].first_loop_line
+
+    def currently_in_loop(self):
+        for loop in self.loops:
+            if loop.end_idx == -1:
+                return True
 
     def add_json(self, json):
         # this will be called before the function is returned
@@ -598,7 +643,7 @@ class Function:
     #     if self.json_mode == "minimal":
     #         return fields
 
-    def construct_json_object(self, lines: List[LineInfo]):
+    def construct_json_object(self, lines: List[Line]):
         # an array of lines
         self.json = [{} for _ in range(len(lines))]
         for idx, line in enumerate(lines):
@@ -808,6 +853,19 @@ class Trace:
 
         self.fxn_stack[-1].print_line()
 
+        # if self.fxn_stack[-1].prev_line_code.strip() == "x = 20":
+        if self.fxn_stack[-1].prev_line_code:
+            # pprint(ast.dump(ast.parse(inspect.getsource(frame))))
+            source_code = inspect.getsource(frame)
+            pprint(find_multi_line_everything(source_code))
+            # start_line, end_line = get_for_loop_line_numbers(source_code)
+            # print(f"start: {start_line}, end: {end_line}")
+            # pprint(lines)
+            # return
+            # ast_stuff = ast.parse(self.fxn_stack[-1].prev_line_code.strip())
+            # pprint(ast.dump(ast_stuff))
+            print()
+
         if self.new_fxn_called():
             self.add_new_function_call(frame)
             self.fxn_stack[-1].initialize_locals(curr_line_locals_dict)
@@ -835,6 +893,15 @@ class Trace:
             # do this at the end since update_locals uses prev_line_code
             self.fxn_stack[-1].add_next_line(frame)
 
+    # def get_line_numbers(self, source):
+    #     tree = ast.parse(source)
+    #     line_numbers = {}
+    #     for node in ast.walk(tree):
+    #         pprint(dir(node))
+    #         return
+    #         # if hasattr(node, 'lineno'):
+    #         #     line_numbers[node.lineno] = ast.dump(node)
+    #     # return line_numbers
 
     def new_fxn_called(self):
         return self.fxn_stack[-1].fxn_transition \
@@ -847,3 +914,46 @@ class Trace:
         self.fxn_stack[-1].print_mode = self.print_mode
         self.fxn_stack[-1].print_on_func_call(get_fxn_signature(frame), frame.f_lineno)
         self.execution_id += 1
+
+
+
+def spans_multiple_lines(node):
+    return hasattr(node, 'lineno') and hasattr(node, 'end_lineno') and node.lineno != node.end_lineno
+
+# Example usage:
+def find_multi_line_everything(source_code):
+    tree = ast.parse(source_code)
+    for node in ast.walk(tree):
+        # if isinstance(node, (ast.For, ast.While)):
+        # if isinstance(node, ast.Assign):
+            # for target in node.targets:
+        # ast.For/While give you lineno, end_lineno for the whole damn loop
+        # ast.Dict will tell me multiple line dicts
+        # TODO: try with more stuff and change to isinstance(node, (ast.Call, ast.Assign, ... etc)):
+        if not isinstance(node, (ast.For, ast.While, ast.FunctionDef, ast.Dict, ast.BoolOp)):
+        # if not isinstance(node, (ast.For, ast.While, ast.FunctionDef)):
+            if spans_multiple_lines(node):
+                print(f"The loop statement '{ast.dump(node)}' spans multiple lines: {node.lineno} -> {node.end_lineno}")
+                print()
+                # print(get_for_loop_line_numbers(source_code))
+                # print(source_code)
+                # print("The target '{}' spans multiple lines".format(ast.dump(target)))
+
+
+
+def get_for_loop_line_numbers(source):
+    tree = ast.parse(source)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.For):
+            start_line = node.lineno
+            # Finding the end line number
+            end_line = find_end_lineno(node)
+            return start_line, end_line
+
+def find_end_lineno(node):
+    # Traverse the AST recursively to find the last child node's line number
+    last_child = node
+    while hasattr(last_child, 'body') and last_child.body:
+        last_child = last_child.body[-1]
+    return last_child.lineno

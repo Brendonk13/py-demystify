@@ -4,6 +4,8 @@ Major todos:
     - fix smaller things
     - output to csv
     - move changed_values (to self.changed_values) and other things to class dedicated to finding changes etc
+        -- class InfoExtractor
+    - test ast.parse(inspect.getsource(frame))
 
 idea is to create class: Lines:
 -- then instead of lines[-1].add_return()
@@ -66,6 +68,9 @@ need to fix this for SELF
 
 NEXT:
 - MAKE STUPID MULTI-LINE STATEMENTS WORK
+How?
+- at the beginning of a function, find all multi-line statements by parsing the ast....
+- 
 
 Note on classes:
     def Vector(x, y)

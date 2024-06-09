@@ -111,8 +111,25 @@ def test_custom_objects(input_arg):
 
 @Trace()
 def test_multi_line_statements(input_arg):
-    # string = "a String "
+    string = "a String "
     # thirdVar = string * 2
+    # here, other.update({ is the first traced line as opposed to other multi-line statements that start on the second line
+    # other = {}
+    # other.update({
+    #     "hello": "world",
+    #     "one": 1,
+    #     "last": input_arg,
+    #     # "last": thirdVar,
+    # })
+
+    def wtf(
+            bruh
+        ):
+        return bruh
+
+    for i in range(0,
+                   2):
+        x = i
 
     other = {
         "hello": "world",
@@ -123,11 +140,11 @@ def test_multi_line_statements(input_arg):
     # how do I check for when I am at the end of a multi-line statement
 
     # # if "one" in other and other["one"] \
-    # if other["one"] \
-    #     and True:
-    #     x = other
-    # else:
-    #     x = 10
+    if other["one"] \
+        and True:
+        x = other
+    else:
+        x = 10
 
 @Trace()
 def test_function_call(input_arg):
@@ -166,17 +183,26 @@ def test_lots(input_arg):
     idk = list(range(30))
     z = idk + ["frig"] + [x]
     print(z)
+    try:
+        x = 1
+        x = 2
+        fnn = 1
+        fnn = lambda x: x * 10
+        x = 1
+        x = fnn(20)
+    except:
+        print("EXCEPT")
+    finally:
+        x = 99
     return z[-2]
     # return idk
 
 
 @Trace()
 def test_dict(input_arg):
-    x = 10
-    string = "a String "
-    thirdVar = string * 2
+    # string = "a String "
+    # thirdVar = string * 2
 
-    x = 20
     idk = {"hello": "world"} | {"yo": "hello!!"}
     return idk
 
@@ -185,8 +211,8 @@ def test_dict(input_arg):
 if __name__ == "__main__":
     # call the function
     # idk = test_dict(666)
-    idk = test_function_call(444)
+    # idk = test_function_call(444)
 
-    # idk = test_multi_line_statements(444)
+    idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
     # test_multiple_assignments(123)
