@@ -1,9 +1,9 @@
 import sys
 import dis
-from pprint import pprint
+from pprint import pprint, pformat
 from copy import deepcopy
-from typing import Any
-from types import GeneratorType
+from typing import Any, ItemsView, List, Type, Dict, Callable, Optional
+from types import GeneratorType, FrameType,  TracebackType
 import inspect
 import functools
 import os
@@ -14,9 +14,8 @@ import colorful as cf
 from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
 
 
-
 class LineInfo:
-    def __init__(self, code, execution_id, type, line_number, print_mode):
+    def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str):
         # other: line_num
         self.original_line = code.lstrip(" ")
         # todo: add type information for all changes
@@ -42,7 +41,7 @@ class LineInfo:
     def __str__(self):
         return self.__repr__()
 
-    def create_formatted_line(self, var_names, values):
+    def create_formatted_line(self, var_names: List[str], values: List[Any]):
         line = cf.cyan("  #") if self.print_mode == "debug" else "  #"
         num_vars = len(var_names)
         # construct formatted_line
@@ -74,7 +73,7 @@ class LineInfo:
             print(self.additional_line)
 
 
-    def add_return(self, fxn_name, fxn_signature, returned_value):
+    def add_return(self, fxn_name: str, fxn_signature: str, returned_value: Any):
         self.type = "return"
         self.returned_value = returned_value
         self.returned_function = fxn_name
@@ -87,6 +86,8 @@ class LineInfo:
             # print(f"{cf.yellow(f'-> {self.returned_function} returned')} {cf.cyan(self.returned_value)}")
             print(f"{cf.yellow(f'-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
 
+    # def to_json(self):
+
 
 
 class Function:
@@ -98,12 +99,12 @@ class Function:
     maybe this only stores the variables and handles finding new values through implementing __hash__
     """
     # def __init__(self, file_name, object_prefix, fxn_signature, execution_id, fxn_name):
-    def __init__(self, frame, execution_id, object_prefix="_TRACKED_"):
+    def __init__(self, frame: FrameType, execution_id: int, object_prefix="_TRACKED_"):
         # need info from the previous function
         self.prev_line_locals_set = set()
         self.prev_line_locals_dict = dict()
         file_name = get_file_name(frame)
-        fxn_name = get_fxn_name(frame)
+        # fxn_name = get_fxn_name(frame)
         fxn_signature = get_fxn_signature(frame)
 
         # -- Note: even if we used a database to write intermediate results to reduce memory complexity, we would still need
@@ -154,19 +155,19 @@ class Function:
             print(cf.yellow(f'... calling {fxn_signature}'))
 
 
-    def add_exception(self, fxn_name, arg):
+    def add_exception(self, fxn_name: str, arg):
         # todo: replace fxn_name with self.fxn_signature
         tb = ''.join(traceback.format_exception(*arg)).strip()
         print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
 
-    def print_on_return(self, fxn_name, fxn_signature, returned_value):
+    def print_on_return(self, fxn_name: str, fxn_signature: str, returned_value: Any):
         # reset this value once we leave a function (we set this to true if self in locals)
         self.self_in_locals = False
         self.lines[-1].add_return(fxn_name, fxn_signature, returned_value)
         self.lines[-1].print_return()
 
 
-    def initialize_locals(self, curr_line_locals):
+    def initialize_locals(self, curr_line_locals: Dict[str, Any]):
         # called when a new function is found
         # todo: test this now that it also calls add_object_fields_to_locals
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals)
@@ -181,9 +182,9 @@ class Function:
         return assignment, expression
 
 
-    def store_nested_objects(self, curr_line_locals_dict, locals_with_objects):
+    def store_nested_objects(self, curr_line_locals_dict: Dict[str, Any], locals_with_objects: Dict[str, Any]):
         for name,value in curr_line_locals_dict.items():
-            if not self.is_custom_object(name, value):
+            if not self.is_custom_object(value):
                 continue
             tracked_name = f"{self.object_prefix}{name}"
             # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
@@ -194,7 +195,7 @@ class Function:
             del locals_with_objects[name]
             self.store_nested_objects(fields, locals_with_objects[tracked_name])
 
-    def is_custom_object(self, name, value):
+    def is_custom_object(self, value: Any):
         # https://docs.python.org/3/library/inspect.html#fetching-attributes-statically
         # -- hasatr can cause code to execute !!!
         # todo: CHANGE
@@ -203,7 +204,7 @@ class Function:
         #^ wont work with __slots__
         # will only detect user defined types
 
-    def add_object_fields_to_locals(self, curr_line_locals_dict):
+    def add_object_fields_to_locals(self, curr_line_locals_dict: Dict[str, Any]):
         """
             - create deepcopy of function locals
             - for each object in local, extract its fields/values and store that instead
@@ -220,7 +221,7 @@ class Function:
         return curr_line_locals_set, locals_with_objects
 
 
-    def update_stored_vars(self, curr_line_locals_dict):
+    def update_stored_vars(self, curr_line_locals_dict: Dict[str, Any]):
         """ need to make lists hashable somehow for storing lists in the set.
             maybe I store lists differently
             and give the option to search lists for if a certain value appears
@@ -260,7 +261,7 @@ class Function:
         self.replace_old_values(changed_values)
 
 
-    def construct_formatted_line(self, changed_values):
+    def construct_formatted_line(self, changed_values: Dict[str, Any]):
         # add interpreted comment to the current line
         # ie show: * 123 | x = y  # x = 10
         # move if statement to function named: "construct_formatted_line()
@@ -272,7 +273,7 @@ class Function:
         self.interpret_expression(changed_values)
 
 
-    def construct_additional_line(self, changed_values):
+    def construct_additional_line(self, changed_values: Dict[str, Any]):
         added_additional_line = False
         for (var_name, old_value) in self.prev_line_locals_dict.items():
             if var_name not in changed_values:
@@ -290,7 +291,7 @@ class Function:
             self.lines[-1].uncolored_additional_line += uncolored_new_part
             added_additional_line = True
 
-    def gather_additional_data(self, changed_values):
+    def gather_additional_data(self, changed_values: Dict[str, Any]):
         """
             we need to gather additional data if either:
                 1. non-simple assignment  ie: x = "a string".split() * 2 + ["a"]
@@ -309,7 +310,7 @@ class Function:
             self.construct_additional_line(changed_values)
 
 
-    def extract_variable_assignments(self, changed_values):
+    def extract_variable_assignments(self, changed_values: Dict[str, Any]):
         """ Can do:
             - x = y
             - a, b = "a", x
@@ -362,7 +363,7 @@ class Function:
             raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}")
 
 
-    def generate_object_name(self, field_chain, changed_values):
+    def generate_object_name(self, field_chain: List[str], changed_values: Dict[str, Any]):
         name = ""
         chained_object = changed_values
         # need to iterate over changed_values
@@ -376,7 +377,7 @@ class Function:
         return name
 
 
-    def handle_object_expression(self, assignment, expression, changed_values):
+    def handle_object_expression(self, assignment: str, expression: str, changed_values: Dict[str, Any]):
         # need to add a field for the actual value to make it clear for when value is the string "vect.x"
         """
             assignment ex.) "vect.x"  || "x"
@@ -443,7 +444,7 @@ class Function:
         # what if this just returns things instead of printing them, then I can do multiple assignments recursively...
         # assuming no spaces means its getting assigned a variable such as self.x = x
 
-    def interpret_expression(self, changed_values):
+    def interpret_expression(self, changed_values: Dict[str, Any]):
         has_bracket = "(" in self.prev_line_code
 
         if self.is_loop():
@@ -462,7 +463,7 @@ class Function:
 
 
     # change name(s) since I store var_name, value tuples, not key_val tup's
-    def prev_line_k_v_pairs(self, changed_values_keys):
+    def prev_line_k_v_pairs(self, changed_values_keys: List[str]):
         # need the previous values in order to remove them from "prev_line_locals_stack"
         # ie: if x got changed to 10, this stores: (x, prev_value)
         # todo: change to generator
@@ -473,7 +474,7 @@ class Function:
         ]
 
 
-    def replace_old_values(self, changed_values):
+    def replace_old_values(self, changed_values: Dict[str, Any]):
         # need to update since this is a set of pairs so we cant just update the value for this variable
         # remove old values according to changed_values
         # they are different here, the dict has the new values already
@@ -486,19 +487,23 @@ class Function:
         self.prev_line_locals_set.update(changed_values_set)
         self.prev_line_locals_dict.update(changed_values)
 
+    def first_loop_line(self):
+        stripped_code = self.prev_line_code.lstrip()
+        return (
+            " " in stripped_code
+            and stripped_code.split()[0] in ("for", "while")
+        )
+
 
     def is_loop(self):
-
         # purpose is to support multi-line loop declarations but maybe this should be done diff
         if self.in_loop_declaration:
-            # print("================ IN LOOP DECLARATION", self.lines[-1])
+            print("================ IN LOOP DECLARATION", self.lines[-1])
             return True
         # todo: set in_loop_declaration to false
-        stripped_code = self.prev_line_code.lstrip()
-        in_loop = " " in stripped_code and stripped_code.split()[0] in ("for", "while")
         # if self.in_loop_declaration or in_loop:
-        if in_loop:
-            # print(f"SET LOOP DECLARATION, stripped_code: {stripped_code}, self: {self}")
+        if self.first_loop_line():
+            print(f"SET LOOP DECLARATION, code: {self.prev_line_code}, self: {self}")
             self.in_loop_declaration = True
             return True
 
@@ -516,7 +521,7 @@ class Function:
                 return True
         return False
 
-    def make_hashable(self, value):
+    def make_hashable(self, value: Any):
         # print("value", value, "type", type(value))
         if isinstance(value, GeneratorType):
             return value
@@ -532,14 +537,15 @@ class Function:
             return value
 
 
-    def convert_to_set(self, locals):
+    # def convert_to_set(self, locals: List[Tuple[str, Any]]):
+    def convert_to_set(self, locals: ItemsView[str, Any]):
         hashable_locals = set()
         for var_name, value in locals:
             value = self.make_hashable(value)
             hashable_locals.add((var_name, value))
         return hashable_locals
 
-    def add_next_line(self, frame):
+    def add_next_line(self, frame: FrameType):
         # print("added next line")
         skip_lane = "with" in self.prev_line_code
         next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
@@ -559,8 +565,18 @@ class Function:
         # should do more stuff instead of always printing lstrip'd lines
         # need to show conditionals/their indentations better.
         # TODO: check if this is a loop or something
-        self.lines.append(LineInfo(self.prev_line_code, self.latest_execution_id, "code", self.prev_line_number, self.print_mode))
+        line_type = "code"
+        # if self.first_loop_line():
+        #     self.loops.append()
+        if self.is_loop():
+            line_type = "loop"
+            loop_idx = len(self.loops) - 1
+            # loops
+            # loops need to be nested and hierarchical
+        self.lines.append(LineInfo(self.prev_line_code, self.latest_execution_id, line_type, self.prev_line_number, self.print_mode))
         self.latest_execution_id += 1
+        if self.is_loop():
+            self.lines[-1].loop_idx = len(self.loops) - 1
 
 
     def add_json(self, json):
@@ -571,16 +587,27 @@ class Function:
         self.construct_json_object(self.lines)
         return self.json
 
-    def construct_json_object(self, lines):
+
+    # def get_json_fields(self, line):
+    #     fields = {
+    #         "execution_id": line.execution_id,
+    #         "original_line": line.original_line,
+    #         "line_number": line.line_number,
+    #         "fxn_json": line.fxn_json,
+    #     }
+    #     if self.json_mode == "minimal":
+    #         return fields
+
+    def construct_json_object(self, lines: List[LineInfo]):
         # an array of lines
         self.json = [{} for _ in range(len(lines))]
         for idx, line in enumerate(lines):
             # todo: only add json if the field exists in order to reduce size of json
             self.json[idx] = {
                 "execution_id": line.execution_id,
-                # "file_name": self.file_name,
-                "line_number": line.line_number,
                 "original_line": line.original_line,
+                # "file_name": self.file_name,
+                # "line_number": line.line_number,
                 # "formatted_line": line.formatted_line,
                 # "additional_line": line.uncolored_additional_line,
                 # "type": line.type,
@@ -591,8 +618,8 @@ class Function:
             #         "formatted_line": line.formatted_line,
             #         "additional_line": line.additional_line,
             #     })
-            if line.type == "loop":
-                self.json[idx]["loop_iterations"] = self.construct_json_object(self.loops[line.loop_idx])
+            # if line.type == "loop":
+            #     self.json[idx]["loop_iterations"] = self.construct_json_object(self.loops[line.loop_idx])
             if line.type == "return":
                 self.json[idx]["returned_function"] = line.returned_function
                 self.json[idx]["returned_value"] = line.returned_value
@@ -627,9 +654,6 @@ class Trace:
         self.fxn_stack = []
 
         # todo: get value from env var
-        # debug prints in execution order: not clear for multiple functions
-        # console uses the json to print one function at a time
-        # file just writes a json file
         self.print_mode = "debug"
         # todo: get value from env var
         self.object_prefix = "_TRACKED_"
@@ -647,16 +671,30 @@ class Trace:
         self.prev_trace = sys.gettrace()
         self.fxn_stack.append(None)
         sys.settrace(self.once_per_func_tracer)
+        return self # todo: does this get traced ??
 
 
     def done_tracing(self):
         return not self.first_function and len(self.fxn_stack) == 1 and self.fxn_stack[0] is None
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_value: Optional[BaseException], exc_traceback: Optional[TracebackType]) -> bool:
+        # Note: return True to suppress exceptions
         # NOTE: this is called when a error occurs internally
         sys.settrace(self.prev_trace) # has to be the first line or we get weird errors
+        # pprint(self.json)
+        if not self.json:
+            raise ValueError("No self.json, cannot write to file")
+        if self.print_mode == "console":
+            # todo: add code to print the json all nice -- console mode
+            # iterate over self.json and show things function by function instead of in execution order
+            return False
+        if self.print_mode in ("debug", "json"):
+            with open("code_info.json", "w") as f:
+                json = pformat(self.json)
+                f.write(json)
+        return False
 
-    def once_per_func_tracer(self, frame, event, arg):
+    def once_per_func_tracer(self, frame: FrameType, event: str, arg: Any) -> Optional[Callable]:
         # how this works: -- this function is called each new function and it prints "calling {signature}" then returns the trace_lines tracer for the next part
         name = get_fxn_name(frame)
         if event == 'call':
@@ -689,13 +727,13 @@ class Trace:
         print("=============== no tracer returned kinda")
         return self.once_per_func_tracer
 
-    def trace_this_func(self, fxn_name):
+    def trace_this_func(self, fxn_name: str) -> bool:
         # if fxn_name in list(should_trace): return True
         return True
 
 
 
-    def on_return(self, frame, returned_value):
+    def on_return(self, frame: FrameType, returned_value: Any):
         # get json data for this function before we delete its data
         self.fxn_stack[-1].print_on_return(frame.f_code.co_name, get_fxn_signature(frame), returned_value)
         json = self.fxn_stack[-1].to_json()
@@ -710,18 +748,20 @@ class Trace:
         # pop the function's variables
         self.fxn_stack.pop()
         if not self.done_tracing():
+            # add the called function's json to the caller
             self.fxn_stack[-1].add_json(json)
             # is this correct below here ? we're setting just_printed_return for a diff functin that returned (the popped one)
             self.fxn_stack[-1].just_printed_return = True
             self.fxn_stack[-1].just_returned = True
         else:
             # not sure if this is the correct json
+            self.json = json
             if 0:
                 pprint(json, sort_dicts=False)
         # print("AFTER pop", self.fxn_stack)
 
 
-    def trace_lines(self, frame, event, arg):
+    def trace_lines(self, frame: FrameType, event: str, arg: Any):
         """ called before "next_line_executed" is ran, so we see the changes in frame.f_locals late
 
         WHEN TO UPDATE THE FUNCTION'S EXECUTION_ID
@@ -801,7 +841,7 @@ class Trace:
                and not self.fxn_stack[-1].just_returned
 
 
-    def add_new_function_call(self, frame):
+    def add_new_function_call(self, frame: FrameType):
         self.fxn_stack.append(Function(frame, self.execution_id, self.object_prefix))
         # this causes immediate prints instead of deferring prints to this class
         self.fxn_stack[-1].print_mode = self.print_mode

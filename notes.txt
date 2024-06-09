@@ -3,6 +3,29 @@ Major todos:
     - add support
     - fix smaller things
     - output to csv
+    - move changed_values (to self.changed_values) and other things to class dedicated to finding changes etc
+
+idea is to create class: Lines:
+-- then instead of lines[-1].add_return()
+-- self.lines.add_return()
+-- this function finds the right line to add the return statement to
+self.lines[-1].fxn_json = json
+-- instead, Lines class will find the correct place to add the json
+then Function class would just keep track of states and compute things by parsing prev_line_code, changed_values
+Lines class can remember nested indices and append an index every time a new loop or fxn is added
+ie on finding first loop:
+self.curr_index.append(("loop", len(self.loops) - 1)
+    then when we call a function:
+    │ shit happens as normal, then when self.fxn_stack[-1].add_json(json) is called:
+        - we parse self.loops
+        how do we know when a loop is done or if we are encountering a new loop -- line numbers
+        on each traversal of a loop, we set self.last_line = max(self.last_line, curr_loop_last_line )
+
+WE KNOW LOOPS ARE DONE SINCE YOU ALWAYS EXECUTE THE SAME LINE AFTER THE LOOP CONDITION
+SO THE FIRST TIME WE ITERATE, WE DENOTE THE FIRST LINE NUMBER OF THE FILE IS THE FIRST LINE AFTER THE LOOP CONDITION: for i in range
+-- we check the control flow, if the line after a loop condition is not the expected one, then the loop is done !!!
+
+-- dont change how I store lines, just convert everything when converting to json
 
 Todo:
     - why do results vary wildly if loop_fn() returns a value or not
@@ -180,6 +203,10 @@ todo:
     - find stateful and stateless functions
     - move the stateless ones out of the class
 
+debug_mode:
+    # debug prints in execution order: not clear for multiple functions
+    # console uses the json to print one function at a time
+    # file just writes a json file
 
 JSON: [
     ..., ..., ..., ...,
