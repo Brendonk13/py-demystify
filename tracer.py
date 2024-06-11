@@ -224,6 +224,8 @@ class Function:
         self.prev_line_locals_dict.update(curr_line_locals_dict)
 
     def get_assignment_and_expression(self):
+        if "=" not in self.prev_line_code:
+            return "", ""
         equals_idx = self.prev_line_code.index("=")
         assignment, expression = self.prev_line_code[:equals_idx].strip(), self.prev_line_code[equals_idx+1:].strip()
         return assignment, expression
@@ -276,6 +278,10 @@ class Function:
             will look thru lists and return the values changed in a list as well
             as the indices where they are found.
         """
+        # NOTE: I didnt need this before I did all the loop stuff
+        if self.prev_line_code == "":
+            print("BYE")
+            return
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals_dict)
         new_variables = curr_line_locals_set - self.prev_line_locals_set
 
@@ -291,8 +297,6 @@ class Function:
             self.in_loop_declaration = False
         # if self.is_loo
 
-        if self.prev_line_code == "":
-            return
         # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
 
         # Note on classes:
@@ -383,7 +387,7 @@ class Function:
         var_name = ""
 
         assignment, expression = self.get_assignment_and_expression()
-        # print("====== assignment", assignment, "expression", expression, "changed_values", changed_values)
+        print("====== assignment", assignment, "expression", expression, "changed_values", changed_values)
 
         if (
             len(changed_values) == 0
@@ -398,7 +402,7 @@ class Function:
             print("extract_variable_assignments no changed values")
             return [var_name], [value]
 
-        elif "," in assignment and len(assignment.split(",")) == len(expression.split(",")):
+        elif "," in assignment and assignment != expression and len(assignment.split(",")) == len(expression.split(",")):
             # multiple assignment line
             assignments = [a.strip() for a in assignment.split(",")]
             expressions = [e.strip() for e in expression.split(",")]
@@ -771,6 +775,7 @@ class Function:
 
     def to_json(self):
         self.json = self.construct_json_object(self.lines)
+        return self.json
 
 
     # def get_json_fields(self, line):
@@ -875,12 +880,13 @@ class Trace:
         self.prev_trace = sys.gettrace()
         self.fxn_stack = []
 
+        self.json = []
         # todo: get value from env var
         self.print_mode = "debug"
         # todo: get value from env var
         self.object_prefix = "_TRACKED_"
         # todo: get value from env var
-        self.num_loops_stored = 3 # store first 3, last 3 loop iters by default
+        self.num_loops_stored = 1 # store first 3, last 3 loop iters by default
 
 
     def __call__(self, function):
@@ -906,13 +912,13 @@ class Trace:
         # NOTE: this is called when a error occurs internally
         sys.settrace(self.prev_trace) # has to be the first line or we get weird errors
         # pprint(self.json)
-        if not self.json:
+        if not self.json and self.done_tracing():
             raise TracingError("No self.json, cannot write to file")
         if self.print_mode == "console":
             # todo: add code to print the json all nice -- console mode
             # iterate over self.json and show things function by function instead of in execution order
             return False
-        if self.print_mode in ("debug", "json"):
+        if self.json and self.print_mode in ("debug", "json"):
             with open("code_info.json", "w") as f:
                 json = pformat(self.json)
                 f.write(json)
@@ -980,7 +986,7 @@ class Trace:
         else:
             # not sure if this is the correct json
             self.json = json
-            if 0:
+            if 1:
                 pprint(json, sort_dicts=False)
         # print("AFTER pop", self.fxn_stack)
 

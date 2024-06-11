@@ -48,7 +48,8 @@ def complex_fxn():
     #y = (r for r in range(5))
     #y = Vector(0, 1)
     # context_manager()
-    y = loop_fn(2)
+    y = simple_fxn()
+    # y = loop_fn(2)
     if not x:
         return
     else:
@@ -221,6 +222,7 @@ def test_lots(input_arg):
 def test_dict(input_arg):
     string = "a String "
     thirdVar = string * 2
+    string = 'a'
 
     idk = {"hello": "world"} | {"yo": "hello!!"}
     return idk
@@ -229,8 +231,9 @@ def test_dict(input_arg):
 
 if __name__ == "__main__":
     # call the function
-    idk = test_dict(666)
+    # idk = test_dict(666)
     # idk = test_function_call(444)
+    test_nested_loops(3)
 
     # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
