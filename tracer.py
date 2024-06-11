@@ -10,10 +10,13 @@ import functools
 import os
 import traceback
 from re import search
+from collections import deque
 from colorama import Fore, Back, Style, init
 import colorful as cf
 from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
 
+class TracingError(Exception):
+    pass
 
 class Line:
     def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str):
@@ -36,6 +39,7 @@ class Line:
         # dont think we need this anymore
         self.line_idx = -1
 
+        # have access to loop info for easy parsing to json
         self.loop: Optional[Loop] = None
 
         # not sure if I need this as a field
@@ -87,7 +91,7 @@ class Line:
 
     def print_return(self):
         if self.type != "return":
-            raise ValueError(f"Cannot print return for line: {self}")
+            raise TracingError(f"Cannot print return for line: {self}")
         if self.print_mode == "debug":
             # print(f"{cf.yellow(f'-> {self.returned_function} returned')} {cf.cyan(self.returned_value)}")
             print(f"{cf.yellow(f'-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
@@ -96,10 +100,10 @@ class Line:
 
 
 class Loop:
-    def __init__(self, start_idx, start_line_number):
+    def __init__(self, line, start_num_lines, start_line_number):
         # this an index into Function.lines so we can find the line where a loop started
         # self.line = line
-        self.start_idx = start_idx
+        self.line = line
         # on the first iteration of a loop, we mark the line that comes after the loop
         # then we know a loop is complete if the execution flow skips this line (due to failed loop condition)
         self.first_loop_line = -1
@@ -107,7 +111,11 @@ class Loop:
         # self.end_idx: Optional[int] = None
         self.end_idx = -1
         # self.start_line: Optional[Line] = None
-        self.iterations = [0]
+        self.have_written_first_iterations = False
+        self.iterations = deque([{"line": line, "start_num_lines": start_num_lines}])
+        # need to be able to delete from the front easily
+        # but need to make sure we dont delete the first iterations
+        # also need to
 
         # self.deleted_indices = set()
 
@@ -145,8 +153,8 @@ class Function:
         self.num_loops_stored = num_loops_stored
 
         self.print_mode = "json"
-        self.permanent_lines: List[Line] = []
-        self.current_lines: List[Line] = []
+        self.lines: List[Line] = []
+        self.loop_lines: List[Line] = []
 
         self.in_loop_declaration = False
         self.loop_stack: List[Loop]  = []
@@ -174,15 +182,16 @@ class Function:
         return f"Function(signature={self.fxn_signature})"
 
     def print_line(self):
-        if self.current_lines:
-            self.current_lines[-1].print_line()
+        lines = self.lines if not self.loop_stack else self.loop_lines
+        if lines:
+            lines[-1].print_line()
 
     def print_on_func_call(self, fxn_signature, line_number):
         if not self.loop_stack:
-            self.permanent_lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
-            # self.permanent_lines[-1].line_idx = len(self.lines) - 1
-        self.current_lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
-        # self.current_lines[-1].line_idx = len(self.lines) - 1
+            self.lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
+            # self.lines[-1].line_idx = len(self.lines) - 1
+        self.loop_lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
+        # self.loop_lines[-1].line_idx = len(self.lines) - 1
 
         self.latest_execution_id += 1
         if self.print_mode == "debug":
@@ -198,11 +207,11 @@ class Function:
         # reset this value once we leave a function (we set this to true if self in locals)
         self.self_in_locals = False
         if not self.loop_stack:
-            self.permanent_lines[-1].add_return(fxn_name, fxn_signature, returned_value)
-            self.permanent_lines[-1].print_return()
+            self.lines[-1].add_return(fxn_name, fxn_signature, returned_value)
+            self.lines[-1].print_return()
         else:
-            self.current_lines[-1].add_return(fxn_name, fxn_signature, returned_value)
-            self.current_lines[-1].print_return()
+            self.loop_lines[-1].add_return(fxn_name, fxn_signature, returned_value)
+            self.loop_lines[-1].print_return()
 
 
     def initialize_locals(self, curr_line_locals: Dict[str, Any]):
@@ -282,6 +291,8 @@ class Function:
             self.in_loop_declaration = False
         # if self.is_loo
 
+        if self.prev_line_code == "":
+            return
         # print("changed", changed_values, "=====", curr_line_locals_dict, "new_variables", new_variables)
 
         # Note on classes:
@@ -311,9 +322,17 @@ class Function:
         self.interpret_expression(changed_values)
 
 
+    def get_most_recent_line(self):
+        lines = self.lines if not self.loop_stack else self.loop_lines
+        if not lines and self.loop_stack:
+            # then we just wrote data from self.lines into self.loop_lines
+            # here, will need to add data to self.loop_lines again before returning that
+            return self.lines[-1]
+        return lines[-1]
+
     def construct_additional_line(self, changed_values: Dict[str, Any]):
+        line = self.get_most_recent_line()
         added_additional_line = False
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
         for (var_name, old_value) in self.prev_line_locals_dict.items():
             if var_name not in changed_values:
                 continue
@@ -324,10 +343,10 @@ class Function:
             colored_new_part = cf.red(f"  {var_name}={old_value}") + " --> " + cf.green(f"new value: {new_value}")
             uncolored_new_part = f"  {var_name}={old_value}" + " --> " + f"new value: {new_value}"
             if added_additional_line:
-                lines[-1].additional_line += ","
-                lines[-1].uncolored_additional_line += ","
-            lines[-1].additional_line += colored_new_part
-            lines[-1].uncolored_additional_line += uncolored_new_part
+                line.additional_line += ","
+                line.uncolored_additional_line += ","
+            line.additional_line += colored_new_part
+            line.uncolored_additional_line += uncolored_new_part
             added_additional_line = True
 
     def gather_additional_data(self, changed_values: Dict[str, Any]):
@@ -398,8 +417,8 @@ class Function:
             var_name, value = self.handle_object_expression(assignment, expression, changed_values)
             return [var_name], [value]
         else:
-            # raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
-            raise ValueError(f"Unexpected conditional case, changed_values: {changed_values}")
+            # raise TracingError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
+            raise TracingError(f"Unexpected conditional case, changed_values: {changed_values}")
 
 
     def generate_object_name(self, field_chain: List[str], changed_values: Dict[str, Any]):
@@ -484,21 +503,21 @@ class Function:
         # assuming no spaces means its getting assigned a variable such as self.x = x
 
     def interpret_expression(self, changed_values: Dict[str, Any]):
-        has_bracket = "(" in self.prev_line_code
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
+        # has_bracket = "(" in self.prev_line_code
+        line = self.get_most_recent_line()
 
         if self.is_loop():
             # print("changed_values", changed_values)
             # var_name, value = changed_values.popitem()
             # TODO: test with a variable with multiple assignment in a loop
-            lines[-1].create_formatted_line(list(changed_values.keys()), list(changed_values.values()))
+            line.create_formatted_line(list(changed_values.keys()), list(changed_values.values()))
             # HOW TO ENFORCE NOT HAVING ADDITIONAL_LINE FOR LOOPS
             # print("LOOPPPPP, changed_values", changed_values, "is_assignment", is_assignment, "prev_line_code", self.prev_line_code)
         elif len(changed_values) > 0 or self.is_assignment():
             # self.in_loop_declaration = False
             # assignment, expression = self.get_assignment_and_expression()
             var_names, values = self.extract_variable_assignments(changed_values)
-            lines[-1].create_formatted_line(var_names, values)
+            line.create_formatted_line(var_names, values)
 
 
 
@@ -567,9 +586,10 @@ class Function:
         return hashable_locals
 
     def add_next_line(self, frame: FrameType):
-        # print("added next line")
+        # print ("ASJNXAJKSNJKLASNXJKLASNXLKJASNJKNSAKLJNXASK")
         skip_lane = "with" in self.prev_line_code
         next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+        # print(f"added next line, prev_line_code: {self.prev_line_code}, next_line_executed: {next_line_executed}")
         # print("prev_line", self.prev_line_code, "next line", next_line_executed)
         self.prev_line_code = next_line_executed
         self.prev_line_number = frame.f_lineno
@@ -591,42 +611,63 @@ class Function:
         #     self.loop_stack.append()
         if self.is_loop():
             line_type = "loop_start"
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
+        # dont call get_most_recent_line here since we want to write to self.loop_lines regardless of whether its empty
+        lines = self.lines if not self.loop_stack else self.loop_lines
         lines.append(Line(self.prev_line_code, self.latest_execution_id, line_type, self.prev_line_number, self.print_mode))
         # lines[-1].line_idx = len(self.lines) - 1
         self.latest_execution_id += 1
 
         self.mark_loop_events()
-        # if self.currently_in_loop():
-        #     if self.first_line_after_loop():
-        #         # TODO: this will not work for loops with multiple line declarations
-        #         self.loop_stack[-1].first_loop_line = self.prev_line_number
-        #     else:
-        #         x = True
-        #         # check if loop has just finished
 
-        # if self.first_loop_line():
-        #     # now check if this is our first time entering this loop
-        #     first_loop_iteration = False
-        #     if first_loop_iteration:
-        #         # take note of the first line for a loop, then we can easily find the start and end of a loop
-        #         loop_start_line_idx = len(self.lines) - 1
-        #         self.loop_stack.append(Loop(loop_start_line_idx, self.prev_line_number))
-        #         # self.just_entered_loop = True
-        #         # self.lines[-1].
-        #     # self.lines[-1]
-        #     # also need to check if we just left a loop
-        #     # now need to check if this is a new nested loop or if its the first loop iteration
-        #     # or if its the first line but not first iteration of the loop
-        #     # loops
-        #     # loops need to be nested and hierarchical
-        # if self.is_loop():
-        #     self.lines[-1].loop_idx = len(self.loop_stack) - 1
+
+    def mark_loop_events(self):
+        lines = self.lines if not self.loop_stack else self.loop_lines
+
+        if self.first_line_after_loop():
+            self.loop_stack[-1].first_loop_line = self.prev_line_number
+
+        if self.just_left_loop():
+            # if just left loop, have already added line after loop to self.lines
+            # todo: add the delete code here
+            # self.loop_stack[-1].end_idx = len(self.lines) - 2
+            loop = self.loop_stack[-1]
+            self.write_last_iterations(loop)
+            self.loop_stack.pop()
+
+        if self.started_another_loop_iteration():
+            # when a loop ends, we will USUALLY (breaks skip loop condition???) call this function to check the loop condition
+            # then self.just_left_loop() will be called
+            # -- maybe this section handles writing the first 3, and just_left_loop handles writing the last 3 iterations
+
+            # this fxn will write the first self.num_loops_stored iterations (of outermost loop)
+            # self.increment_loop_iteration()
+            loop = self.find_current_loop()
+            self.add_iteration(loop)
+
+            # what order should these be in
+            self.delete_iteration(loop)
+
+        if self.is_first_loop_line():
+            start_num_lines = len(self.loop_lines) if self.loop_stack else 0
+            self.loop_stack.append(Loop(line=lines[-1], start_num_lines=start_num_lines, start_line_number=self.prev_line_number))
+            # attach the loop so that when we pop off the stack, we still have access to it
+            lines[-1].loop = self.loop_stack[-1]
+
+
+    def write_last_iterations(self, loop):
+        for iteration in loop.iterations[-self.num_loops_stored]:
+            start_iteration_idx = iteration["start_num_lines"]
+            end_iteration_idx = start_iteration_idx + iteration["lines_in_iteration"]
+            self.lines += self.loop_lines[start_iteration_idx:end_iteration_idx+1]
 
 
     def first_line_after_loop(self):
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
-        return self.loop_stack and self.loop_stack[-1].start_idx == len(lines) - 2
+        # Note: this only works once
+        lines = self.lines if not self.loop_stack else self.loop_lines
+        if len(lines) < 2:
+            raise TracingError(
+            f"need 2 lines to check first_line_after_loop(), lines: {lines}, loop_stack: {self.loop_stack}, lines: {self.lines}")
+        return self.loop_stack and self.loop_stack[-1].line is lines[-2]
 
     def is_first_loop_line(self):
         first_token = self.prev_line_code.lstrip().split()[0]
@@ -644,37 +685,54 @@ class Function:
             and self.prev_line_number in (loop.start_line_number for loop in self.loop_stack)
         )
 
-    def increment_loop_iteration(self):
-        """ count iterations for loop """
+    def add_iteration(self, loop):
+        """
+        first update the just finished iteration with lines_in_iteration
+        then append new iteration
+        """
+        # lines = self.lines if not self.loop_stack else self.loop_lines
+        start_num_lines = loop.iterations[-1]["start_num_lines"]
+        lines_in_iteration = len(self.loop_lines) - start_num_lines
+        # update this iteration with how many lines it has for easy parsing to json
+        loop.iterations[-1]["lines_in_iteration"] = lines_in_iteration
+        # todo: not sure if this len() is correct
+        # TODO: -- we will add iterations incorrectly when evaluating loop condition on last time
+        # FIXME^
+        self.write_first_iterations(loop)
+        loop.iterations.append([self.loop_lines[-1], len(self.loop_lines)])
+
+    def find_current_loop(self):
         for idx, loop in enumerate(self.loop_stack):
             if self.prev_line_number == loop.start_line_number:
-                # last
-                # just need each loop to store the number of lines per iteration
-                loop.iterations.append()
-                loop.num_lines = len
-                if idx == 0:
-                    self.permanent_lines += self.current_lines
-                    # only need last 2 lines (for checking self.just_left_loop())
-                    self.current_lines = self.current_lines[-2:]
-                return
+                return loop
 
+    def delete_iteration(self, loop):
+        # if len(loop.iterations) >= self.num_loops_stored * 2 + 1:
+        if len(loop.iterations) > self.num_loops_stored:
+            deleted_iteration = loop.iterations[self.num_loops_stored + 1]
+            start_iteration_idx = deleted_iteration["start_num_lines"]
+            end_iteration_idx = start_iteration_idx + deleted_iteration["lines_in_iteration"]
+            # todo: check for off-by-one errors
+            for idx in range(start_iteration_idx, end_iteration_idx + 1):
+                self.loop_lines[idx] = None
+            loop.iterations.popleft()
+            # is the loop we're about to delete garuanteed to be the first bit in self.loop_lines ??????
+            # now delete from self.loop_lines??
 
-    def mark_loop_events(self):
+    def write_first_iterations(self, loop):
+        # when we have completed an iteration of the outmost loop, can write the first couple iterations (in self.loop_lines) to lines
+        # could make this <= but then more logic
+        if len(loop.iterations) != self.num_loops_stored or loop.have_written_first_iterations:
+            return
+        # todo: make sure that we dont have duplicate lines
+        # the last line here should always be checking the loop condition so we dont need it in the iteration
+        # plus, need a line in self.loop_lines for things like self.add_iteration()
+        self.lines += self.loop_lines[:-1]
+        self.loop_lines = [self.loop_lines[-1]]
+        for _ in range(self.num_loops_stored):
+            loop.iterations.popleft()
+        loop.have_written_first_iterations = True
 
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
-
-        if self.started_another_loop_iteration():
-            self.increment_loop_iteration()
-        if self.is_first_loop_line():
-            self.loop_stack.append(Loop(start_idx=len(self.lines)-1, start_line_number=self.prev_line_number))
-            # attach the loop so that when we pop off the stack, we still have access to it
-            self.lines[-1].loop = self.loop_stack[-1]
-        if self.first_line_after_loop():
-            self.loop_stack[-1].first_loop_line = self.prev_line_number
-        if self.just_left_loop():
-            # if just left loop, have already added line after loop to self.lines
-            self.loop_stack[-1].end_idx = len(self.lines) - 2
-            self.loop_stack.pop()
 
     def just_left_loop(self):
         # TODO: NOTE DONE
@@ -691,19 +749,16 @@ class Function:
                 # NOTE: need to check that continues work properly
         ))
 
-    def currently_in_loop(self):
-        for loop in self.loop_stack:
-            if loop.end_idx == -1:
-                return True
 
     def is_loop(self):
+        # todo: combine this with other loop functions, it only is meant to test if we are in the start/middle of a loop declaration
         # purpose is to support multi-line loop declarations but maybe this should be done diff
         if self.in_loop_declaration:
             # print("================ IN LOOP DECLARATION", self.lines[-1])
             return True
         # todo: set in_loop_declaration to false
         # if self.in_loop_declaration or in_loop:
-        if self.first_loop_line():
+        if self.is_first_loop_line():
             # print(f"SET LOOP DECLARATION, code: {self.prev_line_code}, self: {self}")
             self.in_loop_declaration = True
             return True
@@ -711,11 +766,11 @@ class Function:
 
     def add_json(self, json):
         # this will be called before the function is returned
-        lines = self.permanent_lines if not self.loop_stack else self.current_lines
+        lines = self.lines if not self.loop_stack else self.loop_lines
         lines[-1].fxn_json = json
 
     def to_json(self):
-        self.json = self.construct_json_object(self.permanent_lines)
+        self.json = self.construct_json_object(self.lines)
 
 
     # def get_json_fields(self, line):
@@ -763,14 +818,19 @@ class Function:
                 # json[-1].loop = self.construct_json_object(lines[start_idx:end_idx], offset=new_offset)
                 # idx = end_idx - 1 # - 1 since above object is from lines[:end_idx], which is exclusive
 
-                start_idx = idx - offset
+                # start_idx = idx - offset
+                end_idx = start_idx = idx
                 for (_, num_lines) in line.loop.iterations:
-                    end_idx = start_idx + num_lines
-                    new_offset = offset + start_idx
-                    iteration_lines = self.construct_json_object(lines[start_idx:end_idx], offset=new_offset)
+                    # TODO: check off by one errors
+                    end_idx = start_idx + num_lines + 1
+                    # new_offset = offset + start_idx
+                    # todo: dont need offset??
+                    iteration_lines = self.construct_json_object(lines[start_idx:end_idx], offset=0)
                     json[-1].loop.append(iteration_lines)
-                    start_idx = end_idx + 1
-                idx = end_idx - 1 # - 1 since above object is from lines[:end_idx], which is exclusive
+                    start_idx = end_idx
+                # idx = end_idx - 1 # - 1 since above object is from lines[:end_idx], which is exclusive
+                # minus one since we incremement at the end of the loop
+                idx = end_idx - 1
             if line.type == "return":
                 json[idx]["returned_function"] = line.returned_function
                 json[idx]["returned_value"] = line.returned_value
@@ -847,7 +907,7 @@ class Trace:
         sys.settrace(self.prev_trace) # has to be the first line or we get weird errors
         # pprint(self.json)
         if not self.json:
-            raise ValueError("No self.json, cannot write to file")
+            raise TracingError("No self.json, cannot write to file")
         if self.print_mode == "console":
             # todo: add code to print the json all nice -- console mode
             # iterate over self.json and show things function by function instead of in execution order
@@ -955,16 +1015,18 @@ class Trace:
             tb = ''.join(traceback.format_exception(*arg)).strip()
             print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
             #set a flag to print nothing else
-            # raise ValueError("EXCEPTION")
+            # raise TracingError("EXCEPTION")
             # return
 
         if not self.fxn_stack[-1].prev_line_locals_dict:
             # appended for each new function call so we have variables local to the current function
             # this happens when new functions are called and all the function args are added to locals at once right below
+            # print("=====================INIT")
             self.fxn_stack[-1].initialize_locals(curr_line_locals_dict)
 
         self.fxn_stack[-1].add_line()
 
+        # print(self.fxn_stack[-1].lines)
         self.fxn_stack[-1].update_stored_vars(curr_line_locals_dict)
         # update_stored_vars determines if this line should be added and if so, then execution_id is incrememented
         # this allows update_stored_vars to determine if self.execution_id should be incremented
@@ -1011,16 +1073,6 @@ class Trace:
         else:
             # do this at the end since update_locals uses prev_line_code
             self.fxn_stack[-1].add_next_line(frame)
-
-    # def get_line_numbers(self, source):
-    #     tree = ast.parse(source)
-    #     line_numbers = {}
-    #     for node in ast.walk(tree):
-    #         pprint(dir(node))
-    #         return
-    #         # if hasattr(node, 'lineno'):
-    #         #     line_numbers[node.lineno] = ast.dump(node)
-    #     # return line_numbers
 
     def new_fxn_called(self):
         return self.fxn_stack[-1].fxn_transition \

@@ -67,6 +67,24 @@ def simple_fxn():
     y = "adsd"
     return x
 
+
+@Trace()
+def test_nested_loops(end_range):
+    # x = 1
+    before_1 = True
+    for i in range(end_range):
+        before_2 = True
+        for j in range(end_range):
+            before_3 = True
+            for q in range(end_range):
+                x = j
+            after_3 = True
+        after_2 = True
+    after_1 = True
+    return None
+
+
+
 @Trace()
 def test_multiple_assignments(input_arg):
     vect = Vector(0, 1)
@@ -168,6 +186,7 @@ def test_lots(input_arg):
     x = 10
     string = "a String "
     thirdVar = string * 2
+    x = y = "different multiple assignment"
 
     neerj = int('123d')
     x = simple_fxn()
@@ -200,8 +219,8 @@ def test_lots(input_arg):
 
 @Trace()
 def test_dict(input_arg):
-    # string = "a String "
-    # thirdVar = string * 2
+    string = "a String "
+    thirdVar = string * 2
 
     idk = {"hello": "world"} | {"yo": "hello!!"}
     return idk
@@ -210,9 +229,9 @@ def test_dict(input_arg):
 
 if __name__ == "__main__":
     # call the function
-    # idk = test_dict(666)
+    idk = test_dict(666)
     # idk = test_function_call(444)
 
-    idk = test_multi_line_statements(444)
+    # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
     # test_multiple_assignments(123)

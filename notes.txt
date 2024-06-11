@@ -39,6 +39,11 @@ we will use current_lines for everything, then self.permanent_lines for creating
         -- if we are in a loop, then first 3 iterations of each loop gets added
         -- then when we exit the loop, we add the last 3 to permanent_lines
 
+June 10 NEXT:
+    - mark_loop_events()
+    - make it delete for random iterations
+    - test json object
+
 
 
 next: save this in git, see how it looks with printed on the same line and just fix formatting in general
