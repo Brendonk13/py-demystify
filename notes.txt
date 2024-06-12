@@ -316,6 +316,13 @@ SO THE FIRST TIME WE ITERATE, WE DENOTE THE FIRST LINE NUMBER OF THE FILE IS THE
 
 -- dont change how I store lines, just convert everything when converting to json
 
+
+In github readme:
+    Reasons this is sick:
+        - often think a prog not working cuz of wrong thing, instead of adding a print for what u think it is
+        - showing changes is what u want
+        - no dependencies!
+
 Not working:
 
     not sure if I should be using a set anymore ..
