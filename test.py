@@ -70,23 +70,6 @@ def simple_fxn():
 
 
 @Trace()
-def test_nested_loops(end_range):
-    # x = 1
-    before_1 = True
-    for i in range(end_range):
-        before_2 = True
-        for j in range(end_range):
-            before_3 = True
-            for q in range(end_range):
-                x = j
-            after_3 = True
-        after_2 = True
-    after_1 = True
-    return None
-
-
-
-@Trace()
 def test_multiple_assignments(input_arg):
     vect = Vector(0, 1)
     x, y = 11, 22
@@ -226,6 +209,23 @@ def test_dict(input_arg):
 
     idk = {"hello": "world"} | {"yo": "hello!!"}
     return idk
+
+@Trace()
+def test_nested_loops(end_range):
+    # x = 1
+    before_1 = True
+    for i in range(end_range):
+        before_2 = True
+        for j in range(end_range):
+            before_3 = True
+            for q in range(end_range):
+                x = j
+            after_3 = True
+        after_2 = True
+    after_1 = True
+    return None
+
+
 
 
 

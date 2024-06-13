@@ -1,1 +1,1640 @@
-[]
+[{'execution_id': 0,
+  'fxn_json': [],
+  'original_line': 'test_nested_loops(end_range=3)',
+  'type': 'fxn_call'},
+ {'execution_id': 1,
+  'fxn_json': [],
+  'original_line': 'before_1 = True',
+  'type': 'code'},
+ {'execution_id': 2,
+  'fxn_json': [],
+  'loop': [[{'execution_id': 1,
+             'fxn_json': [],
+             'original_line': 'before_1 = True',
+             'type': 'code'},
+            {'execution_id': 2,
+             'fxn_json': [],
+             'loop': [[{'execution_id': 2,
+                        'fxn_json': [],
+                        'loop': [[{'execution_id': 3,
+                                   'fxn_json': [],
+                                   'original_line': 'before_2 = True',
+                                   'type': 'code'},
+                                  {'execution_id': 4,
+                                   'fxn_json': [],
+                                   'loop': [[{'execution_id': 4,
+                                              'fxn_json': [],
+                                              'loop': [[{'execution_id': 5,
+                                                         'fxn_json': [],
+                                                         'original_line': 'before_3 '
+                                                                          '= '
+                                                                          'True',
+                                                         'type': 'code'},
+                                                        {'execution_id': 6,
+                                                         'fxn_json': [],
+                                                         'loop': [[{'execution_id': 6,
+                                                                    'fxn_json': [],
+                                                                    'loop': [[{'execution_id': 7,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 10,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 11,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 10,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 11,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 12,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 13,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'after_3 '
+                                                                                                '= '
+                                                                                                'True',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 14,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'j '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 15,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'before_3 '
+                                                                                                '= '
+                                                                                                'True',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 16,
+                                                                               'fxn_json': [],
+                                                                               'loop': [[{'execution_id': 10,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 11,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'x '
+                                                                                                           '= '
+                                                                                                           'j',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 10,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 11,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'x '
+                                                                                                           '= '
+                                                                                                           'j',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 12,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 13,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'after_3 '
+                                                                                                           '= '
+                                                                                                           'True',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 14,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'j '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 15,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'before_3 '
+                                                                                                           '= '
+                                                                                                           'True',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 16,
+                                                                                          'fxn_json': [],
+                                                                                          'loop': [[{'execution_id': 11,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'x '
+                                                                                                                      '= '
+                                                                                                                      'j',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 10,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'},
+                                                                                                    {'execution_id': 11,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'x '
+                                                                                                                      '= '
+                                                                                                                      'j',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 12,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'},
+                                                                                                    {'execution_id': 13,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'after_3 '
+                                                                                                                      '= '
+                                                                                                                      'True',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 14,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'j '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'},
+                                                                                                    {'execution_id': 15,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'before_3 '
+                                                                                                                      '= '
+                                                                                                                      'True',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 16,
+                                                                                                     'fxn_json': [],
+                                                                                                     'loop': [[{'execution_id': 10,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'},
+                                                                                                               {'execution_id': 11,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'x '
+                                                                                                                                 '= '
+                                                                                                                                 'j',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 12,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'},
+                                                                                                               {'execution_id': 13,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'after_3 '
+                                                                                                                                 '= '
+                                                                                                                                 'True',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 14,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'j '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'},
+                                                                                                               {'execution_id': 15,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'before_3 '
+                                                                                                                                 '= '
+                                                                                                                                 'True',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 16,
+                                                                                                                'fxn_json': [],
+                                                                                                                'loop': [[{'execution_id': 10,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'},
+                                                                                                                          {'execution_id': 11,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'x '
+                                                                                                                                            '= '
+                                                                                                                                            'j',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 12,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'},
+                                                                                                                          {'execution_id': 13,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'after_3 '
+                                                                                                                                            '= '
+                                                                                                                                            'True',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 14,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'j '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'},
+                                                                                                                          {'execution_id': 15,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'before_3 '
+                                                                                                                                            '= '
+                                                                                                                                            'True',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 16,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'loop': [[{'execution_id': 10,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'},
+                                                                                                                                     {'execution_id': 11,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'x '
+                                                                                                                                                       '= '
+                                                                                                                                                       'j',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 12,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'},
+                                                                                                                                     {'execution_id': 13,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'after_3 '
+                                                                                                                                                       '= '
+                                                                                                                                                       'True',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 14,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'j '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'},
+                                                                                                                                     {'execution_id': 15,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'before_3 '
+                                                                                                                                                       '= '
+                                                                                                                                                       'True',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 16,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'loop': [[{'execution_id': 11,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'x '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'j',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 12,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'q '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'start_iteration'},
+                                                                                                                                                {'execution_id': 13,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'after_3 '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'True',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 14,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'j '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'start_iteration'},
+                                                                                                                                                {'execution_id': 15,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'before_3 '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'True',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 16,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'loop': [[{'execution_id': 12,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'q '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'start_iteration'},
+                                                                                                                                                           {'execution_id': 13,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'after_3 '
+                                                                                                                                                                             '= '
+                                                                                                                                                                             'True',
+                                                                                                                                                            'type': 'code'},
+                                                                                                                                                           {'execution_id': 14,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'j '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'start_iteration'},
+                                                                                                                                                           {'execution_id': 15,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'before_3 '
+                                                                                                                                                                             '= '
+                                                                                                                                                                             'True',
+                                                                                                                                                            'type': 'code'},
+                                                                                                                                                           {'execution_id': 16,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'loop': [[{'execution_id': 13,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'after_3 '
+                                                                                                                                                                                        '= '
+                                                                                                                                                                                        'True',
+                                                                                                                                                                       'type': 'code'},
+                                                                                                                                                                      {'execution_id': 14,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'for '
+                                                                                                                                                                                        'j '
+                                                                                                                                                                                        'in '
+                                                                                                                                                                                        'range(end_range):',
+                                                                                                                                                                       'type': 'start_iteration'},
+                                                                                                                                                                      {'execution_id': 15,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'before_3 '
+                                                                                                                                                                                        '= '
+                                                                                                                                                                                        'True',
+                                                                                                                                                                       'type': 'code'},
+                                                                                                                                                                      {'execution_id': 16,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'loop': [[{'execution_id': 14,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'for '
+                                                                                                                                                                                                   'j '
+                                                                                                                                                                                                   'in '
+                                                                                                                                                                                                   'range(end_range):',
+                                                                                                                                                                                  'type': 'start_iteration'},
+                                                                                                                                                                                 {'execution_id': 15,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'before_3 '
+                                                                                                                                                                                                   '= '
+                                                                                                                                                                                                   'True',
+                                                                                                                                                                                  'type': 'code'},
+                                                                                                                                                                                 {'execution_id': 16,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'loop': [[{'execution_id': 15,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'before_3 '
+                                                                                                                                                                                                              '= '
+                                                                                                                                                                                                              'True',
+                                                                                                                                                                                             'type': 'code'},
+                                                                                                                                                                                            {'execution_id': 16,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'loop': [[{'execution_id': 16,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'loop': [[{'execution_id': 17,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'x '
+                                                                                                                                                                                                                                    '= '
+                                                                                                                                                                                                                                    'j',
+                                                                                                                                                                                                                   'type': 'code'},
+                                                                                                                                                                                                                  {'execution_id': 20,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'for '
+                                                                                                                                                                                                                                    'q '
+                                                                                                                                                                                                                                    'in '
+                                                                                                                                                                                                                                    'range(end_range):',
+                                                                                                                                                                                                                   'type': 'start_iteration'},
+                                                                                                                                                                                                                  {'execution_id': 21,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'x '
+                                                                                                                                                                                                                                    '= '
+                                                                                                                                                                                                                                    'j',
+                                                                                                                                                                                                                   'type': 'code'},
+                                                                                                                                                                                                                  {'execution_id': 20,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'for '
+                                                                                                                                                                                                                                    'q '
+                                                                                                                                                                                                                                    'in '
+                                                                                                                                                                                                                                    'range(end_range):',
+                                                                                                                                                                                                                   'type': 'start_iteration'},
+                                                                                                                                                                                                                  {'execution_id': 21,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'x '
+                                                                                                                                                                                                                                    '= '
+                                                                                                                                                                                                                                    'j',
+                                                                                                                                                                                                                   'type': 'code'},
+                                                                                                                                                                                                                  {'execution_id': 22,
+                                                                                                                                                                                                                   'fxn_json': [],
+                                                                                                                                                                                                                   'original_line': 'for '
+                                                                                                                                                                                                                                    'q '
+                                                                                                                                                                                                                                    'in '
+                                                                                                                                                                                                                                    'range(end_range):',
+                                                                                                                                                                                                                   'type': 'start_iteration'}],
+                                                                                                                                                                                                                 []],
+                                                                                                                                                                                                        'original_line': 'for '
+                                                                                                                                                                                                                         'q '
+                                                                                                                                                                                                                         'in '
+                                                                                                                                                                                                                         'range(end_range):',
+                                                                                                                                                                                                        'type': 'loop_start'},
+                                                                                                                                                                                                       {'execution_id': 17,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'x '
+                                                                                                                                                                                                                         '= '
+                                                                                                                                                                                                                         'j',
+                                                                                                                                                                                                        'type': 'code'},
+                                                                                                                                                                                                       {'execution_id': 20,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'for '
+                                                                                                                                                                                                                         'q '
+                                                                                                                                                                                                                         'in '
+                                                                                                                                                                                                                         'range(end_range):',
+                                                                                                                                                                                                        'type': 'start_iteration'},
+                                                                                                                                                                                                       {'execution_id': 21,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'x '
+                                                                                                                                                                                                                         '= '
+                                                                                                                                                                                                                         'j',
+                                                                                                                                                                                                        'type': 'code'},
+                                                                                                                                                                                                       {'execution_id': 20,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'for '
+                                                                                                                                                                                                                         'q '
+                                                                                                                                                                                                                         'in '
+                                                                                                                                                                                                                         'range(end_range):',
+                                                                                                                                                                                                        'type': 'start_iteration'},
+                                                                                                                                                                                                       {'execution_id': 21,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'x '
+                                                                                                                                                                                                                         '= '
+                                                                                                                                                                                                                         'j',
+                                                                                                                                                                                                        'type': 'code'},
+                                                                                                                                                                                                       {'execution_id': 22,
+                                                                                                                                                                                                        'fxn_json': [],
+                                                                                                                                                                                                        'original_line': 'for '
+                                                                                                                                                                                                                         'q '
+                                                                                                                                                                                                                         'in '
+                                                                                                                                                                                                                         'range(end_range):',
+                                                                                                                                                                                                        'type': 'start_iteration'}],
+                                                                                                                                                                                                      []],
+                                                                                                                                                                                             'original_line': 'for '
+                                                                                                                                                                                                              'q '
+                                                                                                                                                                                                              'in '
+                                                                                                                                                                                                              'range(end_range):',
+                                                                                                                                                                                             'type': 'loop_start'},
+                                                                                                                                                                                            {'execution_id': 17,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'x '
+                                                                                                                                                                                                              '= '
+                                                                                                                                                                                                              'j',
+                                                                                                                                                                                             'type': 'code'},
+                                                                                                                                                                                            {'execution_id': 20,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'for '
+                                                                                                                                                                                                              'q '
+                                                                                                                                                                                                              'in '
+                                                                                                                                                                                                              'range(end_range):',
+                                                                                                                                                                                             'type': 'start_iteration'},
+                                                                                                                                                                                            {'execution_id': 21,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'x '
+                                                                                                                                                                                                              '= '
+                                                                                                                                                                                                              'j',
+                                                                                                                                                                                             'type': 'code'},
+                                                                                                                                                                                            {'execution_id': 20,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'for '
+                                                                                                                                                                                                              'q '
+                                                                                                                                                                                                              'in '
+                                                                                                                                                                                                              'range(end_range):',
+                                                                                                                                                                                             'type': 'start_iteration'},
+                                                                                                                                                                                            {'execution_id': 21,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'x '
+                                                                                                                                                                                                              '= '
+                                                                                                                                                                                                              'j',
+                                                                                                                                                                                             'type': 'code'},
+                                                                                                                                                                                            {'execution_id': 22,
+                                                                                                                                                                                             'fxn_json': [],
+                                                                                                                                                                                             'original_line': 'for '
+                                                                                                                                                                                                              'q '
+                                                                                                                                                                                                              'in '
+                                                                                                                                                                                                              'range(end_range):',
+                                                                                                                                                                                             'type': 'start_iteration'}],
+                                                                                                                                                                                           []],
+                                                                                                                                                                                  'original_line': 'for '
+                                                                                                                                                                                                   'q '
+                                                                                                                                                                                                   'in '
+                                                                                                                                                                                                   'range(end_range):',
+                                                                                                                                                                                  'type': 'loop_start'},
+                                                                                                                                                                                 {'execution_id': 17,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'x '
+                                                                                                                                                                                                   '= '
+                                                                                                                                                                                                   'j',
+                                                                                                                                                                                  'type': 'code'},
+                                                                                                                                                                                 {'execution_id': 20,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'for '
+                                                                                                                                                                                                   'q '
+                                                                                                                                                                                                   'in '
+                                                                                                                                                                                                   'range(end_range):',
+                                                                                                                                                                                  'type': 'start_iteration'},
+                                                                                                                                                                                 {'execution_id': 21,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'x '
+                                                                                                                                                                                                   '= '
+                                                                                                                                                                                                   'j',
+                                                                                                                                                                                  'type': 'code'},
+                                                                                                                                                                                 {'execution_id': 20,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'for '
+                                                                                                                                                                                                   'q '
+                                                                                                                                                                                                   'in '
+                                                                                                                                                                                                   'range(end_range):',
+                                                                                                                                                                                  'type': 'start_iteration'},
+                                                                                                                                                                                 {'execution_id': 21,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'x '
+                                                                                                                                                                                                   '= '
+                                                                                                                                                                                                   'j',
+                                                                                                                                                                                  'type': 'code'},
+                                                                                                                                                                                 {'execution_id': 22,
+                                                                                                                                                                                  'fxn_json': [],
+                                                                                                                                                                                  'original_line': 'for '
+                                                                                                                                                                                                   'q '
+                                                                                                                                                                                                   'in '
+                                                                                                                                                                                                   'range(end_range):',
+                                                                                                                                                                                  'type': 'start_iteration'}],
+                                                                                                                                                                                []],
+                                                                                                                                                                       'original_line': 'for '
+                                                                                                                                                                                        'q '
+                                                                                                                                                                                        'in '
+                                                                                                                                                                                        'range(end_range):',
+                                                                                                                                                                       'type': 'loop_start'},
+                                                                                                                                                                      {'execution_id': 17,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'x '
+                                                                                                                                                                                        '= '
+                                                                                                                                                                                        'j',
+                                                                                                                                                                       'type': 'code'},
+                                                                                                                                                                      {'execution_id': 20,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'for '
+                                                                                                                                                                                        'q '
+                                                                                                                                                                                        'in '
+                                                                                                                                                                                        'range(end_range):',
+                                                                                                                                                                       'type': 'start_iteration'},
+                                                                                                                                                                      {'execution_id': 21,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'x '
+                                                                                                                                                                                        '= '
+                                                                                                                                                                                        'j',
+                                                                                                                                                                       'type': 'code'},
+                                                                                                                                                                      {'execution_id': 20,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'for '
+                                                                                                                                                                                        'q '
+                                                                                                                                                                                        'in '
+                                                                                                                                                                                        'range(end_range):',
+                                                                                                                                                                       'type': 'start_iteration'},
+                                                                                                                                                                      {'execution_id': 21,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'x '
+                                                                                                                                                                                        '= '
+                                                                                                                                                                                        'j',
+                                                                                                                                                                       'type': 'code'},
+                                                                                                                                                                      {'execution_id': 22,
+                                                                                                                                                                       'fxn_json': [],
+                                                                                                                                                                       'original_line': 'for '
+                                                                                                                                                                                        'q '
+                                                                                                                                                                                        'in '
+                                                                                                                                                                                        'range(end_range):',
+                                                                                                                                                                       'type': 'start_iteration'}],
+                                                                                                                                                                     []],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'q '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'loop_start'},
+                                                                                                                                                           {'execution_id': 17,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'x '
+                                                                                                                                                                             '= '
+                                                                                                                                                                             'j',
+                                                                                                                                                            'type': 'code'},
+                                                                                                                                                           {'execution_id': 20,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'q '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'start_iteration'},
+                                                                                                                                                           {'execution_id': 21,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'x '
+                                                                                                                                                                             '= '
+                                                                                                                                                                             'j',
+                                                                                                                                                            'type': 'code'},
+                                                                                                                                                           {'execution_id': 20,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'q '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'start_iteration'},
+                                                                                                                                                           {'execution_id': 21,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'x '
+                                                                                                                                                                             '= '
+                                                                                                                                                                             'j',
+                                                                                                                                                            'type': 'code'},
+                                                                                                                                                           {'execution_id': 22,
+                                                                                                                                                            'fxn_json': [],
+                                                                                                                                                            'original_line': 'for '
+                                                                                                                                                                             'q '
+                                                                                                                                                                             'in '
+                                                                                                                                                                             'range(end_range):',
+                                                                                                                                                            'type': 'start_iteration'}],
+                                                                                                                                                          []],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'q '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'loop_start'},
+                                                                                                                                                {'execution_id': 17,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'x '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'j',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 20,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'q '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'start_iteration'},
+                                                                                                                                                {'execution_id': 21,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'x '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'j',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 20,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'q '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'start_iteration'},
+                                                                                                                                                {'execution_id': 21,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'x '
+                                                                                                                                                                  '= '
+                                                                                                                                                                  'j',
+                                                                                                                                                 'type': 'code'},
+                                                                                                                                                {'execution_id': 22,
+                                                                                                                                                 'fxn_json': [],
+                                                                                                                                                 'original_line': 'for '
+                                                                                                                                                                  'q '
+                                                                                                                                                                  'in '
+                                                                                                                                                                  'range(end_range):',
+                                                                                                                                                 'type': 'start_iteration'}],
+                                                                                                                                               []],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'loop_start'},
+                                                                                                                                     {'execution_id': 17,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'x '
+                                                                                                                                                       '= '
+                                                                                                                                                       'j',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 20,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'},
+                                                                                                                                     {'execution_id': 21,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'x '
+                                                                                                                                                       '= '
+                                                                                                                                                       'j',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 20,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'},
+                                                                                                                                     {'execution_id': 21,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'x '
+                                                                                                                                                       '= '
+                                                                                                                                                       'j',
+                                                                                                                                      'type': 'code'},
+                                                                                                                                     {'execution_id': 22,
+                                                                                                                                      'fxn_json': [],
+                                                                                                                                      'original_line': 'for '
+                                                                                                                                                       'q '
+                                                                                                                                                       'in '
+                                                                                                                                                       'range(end_range):',
+                                                                                                                                      'type': 'start_iteration'}],
+                                                                                                                                    []],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'loop_start'},
+                                                                                                                          {'execution_id': 17,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'x '
+                                                                                                                                            '= '
+                                                                                                                                            'j',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 20,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'},
+                                                                                                                          {'execution_id': 21,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'x '
+                                                                                                                                            '= '
+                                                                                                                                            'j',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 20,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'},
+                                                                                                                          {'execution_id': 21,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'x '
+                                                                                                                                            '= '
+                                                                                                                                            'j',
+                                                                                                                           'type': 'code'},
+                                                                                                                          {'execution_id': 22,
+                                                                                                                           'fxn_json': [],
+                                                                                                                           'original_line': 'for '
+                                                                                                                                            'q '
+                                                                                                                                            'in '
+                                                                                                                                            'range(end_range):',
+                                                                                                                           'type': 'start_iteration'}],
+                                                                                                                         []],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'loop_start'},
+                                                                                                               {'execution_id': 17,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'x '
+                                                                                                                                 '= '
+                                                                                                                                 'j',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 20,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'},
+                                                                                                               {'execution_id': 21,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'x '
+                                                                                                                                 '= '
+                                                                                                                                 'j',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 20,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'},
+                                                                                                               {'execution_id': 21,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'x '
+                                                                                                                                 '= '
+                                                                                                                                 'j',
+                                                                                                                'type': 'code'},
+                                                                                                               {'execution_id': 22,
+                                                                                                                'fxn_json': [],
+                                                                                                                'original_line': 'for '
+                                                                                                                                 'q '
+                                                                                                                                 'in '
+                                                                                                                                 'range(end_range):',
+                                                                                                                'type': 'start_iteration'}],
+                                                                                                              []],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'loop_start'},
+                                                                                                    {'execution_id': 17,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'x '
+                                                                                                                      '= '
+                                                                                                                      'j',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 20,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'},
+                                                                                                    {'execution_id': 21,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'x '
+                                                                                                                      '= '
+                                                                                                                      'j',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 20,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'},
+                                                                                                    {'execution_id': 21,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'x '
+                                                                                                                      '= '
+                                                                                                                      'j',
+                                                                                                     'type': 'code'},
+                                                                                                    {'execution_id': 22,
+                                                                                                     'fxn_json': [],
+                                                                                                     'original_line': 'for '
+                                                                                                                      'q '
+                                                                                                                      'in '
+                                                                                                                      'range(end_range):',
+                                                                                                     'type': 'start_iteration'}],
+                                                                                                   []],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'loop_start'},
+                                                                                         {'execution_id': 17,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'x '
+                                                                                                           '= '
+                                                                                                           'j',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 20,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 21,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'x '
+                                                                                                           '= '
+                                                                                                           'j',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 20,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'},
+                                                                                         {'execution_id': 21,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'x '
+                                                                                                           '= '
+                                                                                                           'j',
+                                                                                          'type': 'code'},
+                                                                                         {'execution_id': 22,
+                                                                                          'fxn_json': [],
+                                                                                          'original_line': 'for '
+                                                                                                           'q '
+                                                                                                           'in '
+                                                                                                           'range(end_range):',
+                                                                                          'type': 'start_iteration'}],
+                                                                                        []],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'loop_start'},
+                                                                              {'execution_id': 17,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 20,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 21,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 20,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'},
+                                                                              {'execution_id': 21,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'x '
+                                                                                                '= '
+                                                                                                'j',
+                                                                               'type': 'code'},
+                                                                              {'execution_id': 22,
+                                                                               'fxn_json': [],
+                                                                               'original_line': 'for '
+                                                                                                'q '
+                                                                                                'in '
+                                                                                                'range(end_range):',
+                                                                               'type': 'start_iteration'}],
+                                                                             []],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'loop_start'},
+                                                                   {'execution_id': 7,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 10,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 11,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 10,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 11,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 12,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 13,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'after_3 '
+                                                                                     '= '
+                                                                                     'True',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 14,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'j '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 15,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'before_3 '
+                                                                                     '= '
+                                                                                     'True',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 16,
+                                                                    'fxn_json': [],
+                                                                    'loop': [[],
+                                                                             []],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'loop_start'},
+                                                                   {'execution_id': 17,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 20,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 21,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 20,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'},
+                                                                   {'execution_id': 21,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'x '
+                                                                                     '= '
+                                                                                     'j',
+                                                                    'type': 'code'},
+                                                                   {'execution_id': 22,
+                                                                    'fxn_json': [],
+                                                                    'original_line': 'for '
+                                                                                     'q '
+                                                                                     'in '
+                                                                                     'range(end_range):',
+                                                                    'type': 'start_iteration'}],
+                                                                  []],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'loop_start'},
+                                                        {'execution_id': 7,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 10,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 11,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 10,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 11,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 12,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 13,
+                                                         'fxn_json': [],
+                                                         'original_line': 'after_3 '
+                                                                          '= '
+                                                                          'True',
+                                                         'type': 'code'},
+                                                        {'execution_id': 14,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'j '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 15,
+                                                         'fxn_json': [],
+                                                         'original_line': 'before_3 '
+                                                                          '= '
+                                                                          'True',
+                                                         'type': 'code'},
+                                                        {'execution_id': 16,
+                                                         'fxn_json': [],
+                                                         'loop': [[], []],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'loop_start'},
+                                                        {'execution_id': 17,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 20,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 21,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 20,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'},
+                                                        {'execution_id': 21,
+                                                         'fxn_json': [],
+                                                         'original_line': 'x = '
+                                                                          'j',
+                                                         'type': 'code'},
+                                                        {'execution_id': 22,
+                                                         'fxn_json': [],
+                                                         'original_line': 'for '
+                                                                          'q '
+                                                                          'in '
+                                                                          'range(end_range):',
+                                                         'type': 'start_iteration'}],
+                                                       []],
+                                              'original_line': 'for j in '
+                                                               'range(end_range):',
+                                              'type': 'loop_start'},
+                                             {'execution_id': 5,
+                                              'fxn_json': [],
+                                              'original_line': 'before_3 = '
+                                                               'True',
+                                              'type': 'code'},
+                                             {'execution_id': 6,
+                                              'fxn_json': [],
+                                              'loop': [[], []],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'loop_start'},
+                                             {'execution_id': 7,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 10,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 11,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 10,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 11,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 12,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 13,
+                                              'fxn_json': [],
+                                              'original_line': 'after_3 = True',
+                                              'type': 'code'},
+                                             {'execution_id': 14,
+                                              'fxn_json': [],
+                                              'original_line': 'for j in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 15,
+                                              'fxn_json': [],
+                                              'original_line': 'before_3 = '
+                                                               'True',
+                                              'type': 'code'},
+                                             {'execution_id': 16,
+                                              'fxn_json': [],
+                                              'loop': [[], []],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'loop_start'},
+                                             {'execution_id': 17,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 20,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 21,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 20,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'},
+                                             {'execution_id': 21,
+                                              'fxn_json': [],
+                                              'original_line': 'x = j',
+                                              'type': 'code'},
+                                             {'execution_id': 22,
+                                              'fxn_json': [],
+                                              'original_line': 'for q in '
+                                                               'range(end_range):',
+                                              'type': 'start_iteration'}],
+                                            []],
+                                   'original_line': 'for j in '
+                                                    'range(end_range):',
+                                   'type': 'loop_start'},
+                                  {'execution_id': 5,
+                                   'fxn_json': [],
+                                   'original_line': 'before_3 = True',
+                                   'type': 'code'},
+                                  {'execution_id': 6,
+                                   'fxn_json': [],
+                                   'loop': [[], []],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'loop_start'},
+                                  {'execution_id': 7,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 10,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 11,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 10,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 11,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 12,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 13,
+                                   'fxn_json': [],
+                                   'original_line': 'after_3 = True',
+                                   'type': 'code'},
+                                  {'execution_id': 14,
+                                   'fxn_json': [],
+                                   'original_line': 'for j in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 15,
+                                   'fxn_json': [],
+                                   'original_line': 'before_3 = True',
+                                   'type': 'code'},
+                                  {'execution_id': 16,
+                                   'fxn_json': [],
+                                   'loop': [[], []],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'loop_start'},
+                                  {'execution_id': 17,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 20,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 21,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 20,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'},
+                                  {'execution_id': 21,
+                                   'fxn_json': [],
+                                   'original_line': 'x = j',
+                                   'type': 'code'},
+                                  {'execution_id': 22,
+                                   'fxn_json': [],
+                                   'original_line': 'for q in '
+                                                    'range(end_range):',
+                                   'type': 'start_iteration'}],
+                                 []],
+                        'original_line': 'for i in range(end_range):',
+                        'type': 'loop_start'},
+                       {'execution_id': 3,
+                        'fxn_json': [],
+                        'original_line': 'before_2 = True',
+                        'type': 'code'},
+                       {'execution_id': 4,
+                        'fxn_json': [],
+                        'loop': [[], []],
+                        'original_line': 'for j in range(end_range):',
+                        'type': 'loop_start'},
+                       {'execution_id': 5,
+                        'fxn_json': [],
+                        'original_line': 'before_3 = True',
+                        'type': 'code'},
+                       {'execution_id': 6,
+                        'fxn_json': [],
+                        'loop': [[], []],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'loop_start'},
+                       {'execution_id': 7,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 10,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 11,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 10,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 11,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 12,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 13,
+                        'fxn_json': [],
+                        'original_line': 'after_3 = True',
+                        'type': 'code'},
+                       {'execution_id': 14,
+                        'fxn_json': [],
+                        'original_line': 'for j in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 15,
+                        'fxn_json': [],
+                        'original_line': 'before_3 = True',
+                        'type': 'code'},
+                       {'execution_id': 16,
+                        'fxn_json': [],
+                        'loop': [[], []],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'loop_start'},
+                       {'execution_id': 17,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 20,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 21,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 20,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'},
+                       {'execution_id': 21,
+                        'fxn_json': [],
+                        'original_line': 'x = j',
+                        'type': 'code'},
+                       {'execution_id': 22,
+                        'fxn_json': [],
+                        'original_line': 'for q in range(end_range):',
+                        'type': 'start_iteration'}],
+                      []],
+             'original_line': 'for i in range(end_range):',
+             'type': 'loop_start'},
+            {'execution_id': 3,
+             'fxn_json': [],
+             'original_line': 'before_2 = True',
+             'type': 'code'},
+            {'execution_id': 4,
+             'fxn_json': [],
+             'loop': [[], []],
+             'original_line': 'for j in range(end_range):',
+             'type': 'loop_start'},
+            {'execution_id': 5,
+             'fxn_json': [],
+             'original_line': 'before_3 = True',
+             'type': 'code'},
+            {'execution_id': 6,
+             'fxn_json': [],
+             'loop': [[], []],
+             'original_line': 'for q in range(end_range):',
+             'type': 'loop_start'},
+            {'execution_id': 7,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 10,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 11,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 10,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 11,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 12,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 13,
+             'fxn_json': [],
+             'original_line': 'after_3 = True',
+             'type': 'code'},
+            {'execution_id': 14,
+             'fxn_json': [],
+             'original_line': 'for j in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 15,
+             'fxn_json': [],
+             'original_line': 'before_3 = True',
+             'type': 'code'},
+            {'execution_id': 16,
+             'fxn_json': [],
+             'loop': [[], []],
+             'original_line': 'for q in range(end_range):',
+             'type': 'loop_start'},
+            {'execution_id': 17,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 20,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 21,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 20,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'},
+            {'execution_id': 21,
+             'fxn_json': [],
+             'original_line': 'x = j',
+             'type': 'code'},
+            {'execution_id': 22,
+             'fxn_json': [],
+             'original_line': 'for q in range(end_range):',
+             'type': 'start_iteration'}],
+           []],
+  'original_line': 'for i in range(end_range):',
+  'type': 'loop_start'},
+ {'execution_id': 3,
+  'fxn_json': [],
+  'original_line': 'before_2 = True',
+  'type': 'code'},
+ {'execution_id': 4,
+  'fxn_json': [],
+  'loop': [[], []],
+  'original_line': 'for j in range(end_range):',
+  'type': 'loop_start'},
+ {'execution_id': 5,
+  'fxn_json': [],
+  'original_line': 'before_3 = True',
+  'type': 'code'},
+ {'execution_id': 6,
+  'fxn_json': [],
+  'loop': [[], []],
+  'original_line': 'for q in range(end_range):',
+  'type': 'loop_start'},
+ {'execution_id': 7, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 10,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 11, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 10,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 11, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 12,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 13,
+  'fxn_json': [],
+  'original_line': 'after_3 = True',
+  'type': 'code'},
+ {'execution_id': 14,
+  'fxn_json': [],
+  'original_line': 'for j in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 15,
+  'fxn_json': [],
+  'original_line': 'before_3 = True',
+  'type': 'code'},
+ {'execution_id': 16,
+  'fxn_json': [],
+  'loop': [[], []],
+  'original_line': 'for q in range(end_range):',
+  'type': 'loop_start'},
+ {'execution_id': 17, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 20,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 21, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 20,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'},
+ {'execution_id': 21, 'fxn_json': [], 'original_line': 'x = j', 'type': 'code'},
+ {'execution_id': 22,
+  'fxn_json': [],
+  'original_line': 'for q in range(end_range):',
+  'type': 'start_iteration'}]

@@ -9,6 +9,11 @@ Major todos:
     - test ast.parse(inspect.getsource(frame))
 
 
+curr loops:
+    - need to simplify things
+    - dont leave any elements in loop_lines
+
+
 need to count the loop iterations done for every loop
 - create self.saved_loop_iters = 3
 │ - when have done 2*self.saved_loop_iters+1 loop iterations: remove data for iteration: self.saved_loop_iters+1
