@@ -8,6 +8,8 @@ Major todos:
         -- class InfoExtractor
     - test ast.parse(inspect.getsource(frame))
 
+1. make self.started_antoher_iter only work for new iters and not
+
 
 curr loops:
     - need to simplify things

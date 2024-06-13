@@ -223,6 +223,7 @@ def test_nested_loops(end_range):
             after_3 = True
         after_2 = True
     after_1 = True
+    x = before_1, before_3, before_2, after_1, after_2, after_3, x, j, i, q
     return None
 
 
