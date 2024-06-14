@@ -12,8 +12,10 @@ Major todos:
 
 
 curr loops:
-    - need to simplify things
-    - dont leave any elements in loop_lines
+    - maybe the issue is passing the end_idx = iter_end + 1???
+    -- but this is kinda necessary since we need to be inclusive about the end_idx
+            - issue is that the second for loop has the wrong start_idx -- cuz the idx is not combining the length of self.lines
+            # maybe add print in the one that writes the iterations idk maybe this is fucking up the order
 
 
 need to count the loop iterations done for every loop

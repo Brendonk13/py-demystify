@@ -234,7 +234,7 @@ if __name__ == "__main__":
     # call the function
     # idk = test_dict(666)
     # idk = test_function_call(444)
-    test_nested_loops(3)
+    test_nested_loops(5)
 
     # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
