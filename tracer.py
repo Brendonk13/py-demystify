@@ -266,17 +266,25 @@ class Function:
 
 
     def store_nested_objects(self, curr_line_locals_dict: Dict[str, Any], locals_with_objects: Dict[str, Any]):
+        """
+        for each object, add all fields to locals_with_objects
+        """
+        # what If I have seperate storage for custom objects so that I don't need to deepcopy stuff
         for name,value in curr_line_locals_dict.items():
             if not self.is_custom_object(value):
+                locals_with_objects[name] = value
                 continue
             tracked_name = f"{self.object_prefix}{name}"
             # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
             # ie: fields = {"sub_object": <__main__.SomeOtherObject object at 0x7fb745d8e710>, "z": 10}
             fields = vars(value)
-            fields_copy = deepcopy(fields)
+            fields_copy = fields.copy()
+            # fields_copy = deepcopy(fields)
             locals_with_objects[tracked_name] = fields_copy
-            del locals_with_objects[name]
+            # del locals_with_objects[name]
             self.store_nested_objects(fields, locals_with_objects[tracked_name])
+
+
 
     def is_custom_object(self, value: Any):
         # https://docs.python.org/3/library/inspect.html#fetching-attributes-statically
@@ -295,11 +303,11 @@ class Function:
         """
 
         # create a copy so we can delete the root objects and only store their field from vars()
-        print("LOCALS", curr_line_locals_dict)
+        # print("LOCALS", curr_line_locals_dict)
         # for k, v in curr_line_locals_dict.items():
         #     if isinstance(v, 
-        locals_with_objects = deepcopy(curr_line_locals_dict)
-        # locals_with_objects = curr_line_locals_dict
+        # locals_with_objects = deepcopy(curr_line_locals_dict)
+        locals_with_objects = {}
         # print("locals_with_objects", locals_with_objects, "locals_dict", curr_line_locals_dict)
         self.store_nested_objects(curr_line_locals_dict, locals_with_objects)
 
@@ -342,14 +350,19 @@ class Function:
         #     ...
         #     y = Vector(0, 1)
         # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the self.prev_line_locals_stack stack
-        # todo: do I still need this ?
-        if not self.self_in_locals and "self" in changed_values:
+        if not self.self_in_locals and "_TRACKED_self" in changed_values and "__init__" not in self.fxn_signature:
+            # Why needed, for prev_line_code: 'vect = Vector(0, 1)'
+            # class Vector: def __init__(self, x, y, z=None): 
+            # we have changed_values: {'z': None, 'y': 1, 'x': 0, '_TRACKED_self': {}}
+            # if we wait one iteration, __init__ gets called and we add all function args like we do every new fxn call
             self.self_in_locals = True
-            print("============== self in locals, returning...")
+            print(f"============== self in locals, returning..., prev_line: {self.prev_line_code}, changed_values: {changed_values}")
             return
         # todo: this call should not be done here
         self.gather_additional_data(changed_values)
-        self.replace_old_values(changed_values)
+        # self.replace_old_values(changed_values)
+        self.prev_line_locals_set = curr_line_locals_set
+        self.prev_line_locals_dict = curr_line_locals_dict
 
 
     def construct_formatted_line(self, changed_values: Dict[str, Any]):
@@ -491,7 +504,8 @@ class Function:
             if assignment in changed_values:
                 return assignment, changed_values[assignment]
             if len(changed_values) == 1:
-                return deepcopy(changed_values).popitem()
+                # return deepcopy(changed_values).popitem()
+                return changed_values.copy().popitem()
             return assignment, expression
 
         if "self" in assignment or "self" in expression:
@@ -573,18 +587,18 @@ class Function:
         ]
 
 
-    def replace_old_values(self, changed_values: Dict[str, Any]):
-        # need to update since this is a set of pairs so we cant just update the value for this variable
-        # remove old values according to changed_values
-        # they are different here, the dict has the new values already
-        for key_val_pair in self.prev_line_k_v_pairs(changed_values):
-            self.prev_line_locals_set.remove(key_val_pair)
-            del self.prev_line_locals_dict[key_val_pair[0]]
+    # def replace_old_values(self, changed_values: Dict[str, Any]):
+    #     # need to update since this is a set of pairs so we cant just update the value for this variable
+    #     # remove old values according to changed_values
+    #     # they are different here, the dict has the new values already
+    #     for key_val_pair in self.prev_line_k_v_pairs(changed_values):
+    #         self.prev_line_locals_set.remove(key_val_pair)
+    #         del self.prev_line_locals_dict[key_val_pair[0]]
 
-        # replace old values according to changed_values
-        changed_values_set = self.convert_to_set(changed_values.items())
-        self.prev_line_locals_set.update(changed_values_set)
-        self.prev_line_locals_dict.update(changed_values)
+    #     # replace old values according to changed_values
+    #     changed_values_set = self.convert_to_set(changed_values.items())
+    #     self.prev_line_locals_set.update(changed_values_set)
+    #     self.prev_line_locals_dict.update(changed_values)
 
 
     def assigned_constant(self):
@@ -941,11 +955,11 @@ class Function:
         lines[-1].fxn_json = json
 
     def to_json(self):
-        print()
-        print_aligned_lines(self.lines)
-        print()
+        # print()
+        # print_aligned_lines(self.lines)
+        # print()
         self.json = self.construct_json_object(0, len(self.lines))
-        print()
+        # print()
         return self.json
 
 
@@ -953,6 +967,7 @@ class Function:
     def construct_json_object(self, start_idx, end_idx, prev_loop_start=None, num_iters=0):
         # the problem is that if I recurse, then my indices in line.loop.start_idx are all wrong
         # idx = start_idx
+        return [{"one": 1}]
         json = []
         idx = start_idx
         while idx < min(len(self.lines), end_idx):
