@@ -1,6 +1,14 @@
 from tracer import Trace
 import os
 
+class Ctx:
+    def __init__(self):
+        self.x = 10
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> bool:
+        return False
+
 class Oth:
     def __init__(self, o):
         self.o = o
@@ -17,6 +25,24 @@ class Vector:
     def __add__(self, other):
         return Vector(self.x + other.x, self.y + other.y)
 
+@Trace()
+def test_custom_objects(input_arg):
+    input_arg = 321
+    vect = Vector(0, 1)
+    x = 10
+    vect.x = 22
+    x = list(a for a in [1,2])
+    vect.x = x
+
+    # vect = Vector(0, 1)
+    # vect.x = 22
+    # vect.x = 33
+    # # vect = vect + Vector(0, 1)
+
+    # vect.x = ["a"]
+    vect.x = input_arg
+    # vect = vect + Vector(0, 1)
+    return vect.x
 
 def double_assignment_loop_fn(end_range):
     # x = 1
@@ -66,10 +92,15 @@ def simple_fxn():
 @Trace()
 def test_context_manager():
     x = 29
-    with os.scandir(".") as entries:
-        for entry in entries:
-            rand = {"entry": entry}
-            x = 10
+    # with open('new.txt') as f:
+    with Ctx() as obj:
+        x = 10
+        x = obj
+
+    # with os.scandir(".") as entries:
+    #     for entry in entries:
+    #         rand = {"entry": entry}
+    #         x = 10
 
 
 @Trace()
@@ -95,24 +126,6 @@ def test_multiple_assignments(input_arg):
     # vect.x, b = 99, x
     # a, b = "a", input_arg
 
-@Trace()
-def test_custom_objects(input_arg):
-    input_arg = 321
-    vect = Vector(0, 1)
-    x = 10
-    vect.x = 22
-    x = list(a for a in [1,2])
-    vect.x = x
-
-    # vect = Vector(0, 1)
-    # vect.x = 22
-    # vect.x = 33
-    # # vect = vect + Vector(0, 1)
-
-    # vect.x = ["a"]
-    vect.x = input_arg
-    # vect = vect + Vector(0, 1)
-    return vect.x
 
 @Trace()
 def test_multi_line_statements(input_arg):
@@ -206,6 +219,9 @@ def test_lots(input_arg):
 
 @Trace()
 def test_dict(input_arg):
+    x = 99
+    y = 10
+    x = y
     string = "a String "
     thirdVar = string * 2
     string = 'a'
@@ -234,11 +250,12 @@ def test_nested_loops(end_range):
 
 
 if __name__ == "__main__":
+
     # idk = test_dict(666)
     # idk = test_function_call(444)
-    test_nested_loops(5)
+    # test_nested_loops(5)
 
-    # test_context_manager()
-    # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
+    test_context_manager()
+    # idk = test_multi_line_statements(444)
     # test_multiple_assignments(123)

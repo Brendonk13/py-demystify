@@ -253,9 +253,11 @@ class Function:
         # todo: test this now that it also calls add_object_fields_to_locals
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals)
 
-        # curr_line_locals_set = self.convert_to_set(curr_line_locals.items())
-        self.prev_line_locals_set.update(curr_line_locals_set)
-        self.prev_line_locals_dict.update(curr_line_locals_dict)
+        # self.prev_line_locals_set.update(curr_line_locals_set)
+        # self.prev_line_locals_dict.update(curr_line_locals_dict)
+
+        self.prev_line_locals_set = curr_line_locals_set
+        self.prev_line_locals_dict = curr_line_locals_dict
 
     def get_assignment_and_expression(self):
         if "=" not in self.prev_line_code:
@@ -266,16 +268,22 @@ class Function:
 
 
     def store_nested_objects(self, curr_line_locals_dict: Dict[str, Any], locals_with_objects: Dict[str, Any]):
+        """
+        for each object, add all fields to locals_with_objects
+        """
+        # what If I have seperate storage for custom objects so that I don't need to deepcopy stuff
         for name,value in curr_line_locals_dict.items():
             if not self.is_custom_object(value):
+                locals_with_objects[name] = value
                 continue
             tracked_name = f"{self.object_prefix}{name}"
             # need to deepcopy o.w this value (stored in prev_line_locals_stack_dict -- will update this variable immediatley
             # ie: fields = {"sub_object": <__main__.SomeOtherObject object at 0x7fb745d8e710>, "z": 10}
             fields = vars(value)
-            fields_copy = deepcopy(fields)
+            fields_copy = fields.copy()
+            # fields_copy = deepcopy(fields)
             locals_with_objects[tracked_name] = fields_copy
-            del locals_with_objects[name]
+            # del locals_with_objects[name]
             self.store_nested_objects(fields, locals_with_objects[tracked_name])
 
     def is_custom_object(self, value: Any):
@@ -295,10 +303,12 @@ class Function:
         """
 
         # create a copy so we can delete the root objects and only store their field from vars()
-        print("LOCALS", curr_line_locals_dict)
+        # print("LOCALS", curr_line_locals_dict)
         # for k, v in curr_line_locals_dict.items():
         #     if isinstance(v, 
-        locals_with_objects = deepcopy(curr_line_locals_dict)
+        # locals_with_objects = deepcopy(curr_line_locals_dict)
+        # locals_with_objects = curr_line_locals_dict.copy()
+        locals_with_objects = {}
         # locals_with_objects = curr_line_locals_dict
         # print("locals_with_objects", locals_with_objects, "locals_dict", curr_line_locals_dict)
         self.store_nested_objects(curr_line_locals_dict, locals_with_objects)
@@ -320,7 +330,9 @@ class Function:
         if self.prev_line_code == "":
             print("BYE")
             return
+        # print(f"before copying, curr_line_locals_dict: {curr_line_locals_dict}")
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals_dict)
+        # print(f"after copying, curr_line_locals_dict: {curr_line_locals_dict}")
         new_variables = curr_line_locals_set - self.prev_line_locals_set
 
         # Note: need curr_line_locals_dict since it is a dict and curr_line_locals_set is a set
@@ -343,13 +355,20 @@ class Function:
         #     y = Vector(0, 1)
         # -- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the self.prev_line_locals_stack stack
         # todo: do I still need this ?
-        if not self.self_in_locals and "self" in changed_values:
+
+        if not self.self_in_locals and "_TRACKED_self" in changed_values and "__init__" not in self.fxn_signature:
+            # Why needed, for prev_line_code: 'vect = Vector(0, 1)'
+            # class Vector: def __init__(self, x, y, z=None): 
+            # we have changed_values: {'z': None, 'y': 1, 'x': 0, '_TRACKED_self': {}}
+            # if we wait one iteration, __init__ gets called and we add all function args like we do every new fxn call
             self.self_in_locals = True
-            print("============== self in locals, returning...")
+            print(f"============== self in locals, returning..., prev_line: {self.prev_line_code}, changed_values: {changed_values}")
             return
         # todo: this call should not be done here
         self.gather_additional_data(changed_values)
-        self.replace_old_values(changed_values)
+        # self.replace_old_values(changed_values)
+        self.prev_line_locals_set = curr_line_locals_set
+        self.prev_line_locals_dict = curr_line_locals_dict
 
 
     def construct_formatted_line(self, changed_values: Dict[str, Any]):
@@ -456,6 +475,7 @@ class Function:
             return [""], [""]
         else:
             # raise TracingError(f"Unexpected conditional case, changed_values: {changed_values}, curr_line_objects: {curr_line_objects}")
+            print(f"prev_line_code: {self.prev_line_code}")
             raise TracingError(f"Unexpected conditional case, changed_values: {changed_values}")
 
 
@@ -491,7 +511,8 @@ class Function:
             if assignment in changed_values:
                 return assignment, changed_values[assignment]
             if len(changed_values) == 1:
-                return deepcopy(changed_values).popitem()
+                # return deepcopy(changed_values).popitem()
+                return changed_values.copy().popitem()
             return assignment, expression
 
         if "self" in assignment or "self" in expression:
@@ -573,18 +594,19 @@ class Function:
         ]
 
 
-    def replace_old_values(self, changed_values: Dict[str, Any]):
-        # need to update since this is a set of pairs so we cant just update the value for this variable
-        # remove old values according to changed_values
-        # they are different here, the dict has the new values already
-        for key_val_pair in self.prev_line_k_v_pairs(changed_values):
-            self.prev_line_locals_set.remove(key_val_pair)
-            del self.prev_line_locals_dict[key_val_pair[0]]
+    # def replace_old_values(self, changed_values: Dict[str, Any]):
+    #     # need to update since this is a set of pairs so we cant just update the value for this variable
+    #     # remove old values according to changed_values
+    #     # they are different here, the dict has the new values already
+    #     for key_val_pair in self.prev_line_k_v_pairs(changed_values):
+    #         self.prev_line_locals_set.remove(key_val_pair)
+    #         del self.prev_line_locals_dict[key_val_pair[0]]
 
-        # replace old values according to changed_values
-        changed_values_set = self.convert_to_set(changed_values.items())
-        self.prev_line_locals_set.update(changed_values_set)
-        self.prev_line_locals_dict.update(changed_values)
+    #     # replace old values according to changed_values
+    #     changed_values_set = self.convert_to_set(changed_values.items())
+    #     self.prev_line_locals_set.update(changed_values_set)
+    #     self.prev_line_locals_dict.update(changed_values)
+
 
 
     def assigned_constant(self):
@@ -627,8 +649,25 @@ class Function:
 
     def add_next_line(self, frame: FrameType):
         # print ("ASJNXAJKSNJKLASNXJKLASNXLKJASNJKNSAKLJNXASK")
-        skip_lane = "with" in self.prev_line_code
-        next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+        weird = search(r"__init__\(self.+ object at", self.fxn_signature)
+        skip_lane = "with" in self.prev_line_code or weird
+        source_code = inspect.getsource(frame)
+        if "__init__" not in source_code and "__enter__" not in source_code:
+            print("source", source_code)
+            tree = ast.parse(source_code)
+            pprint(tree)
+        print("code", self.prev_line_code)
+        next_line_executed = self.prev_line_code
+        if not skip_lane:
+            code = inspect.getframeinfo(frame).code_context
+            if code:
+                next_line_executed = code[0].rstrip()
+        else:
+            code = ""
+
+        # next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+        if weird:
+            next_line_executed = self.prev_line_code
         # print(f"added next line, prev_line_code: {self.prev_line_code}, next_line_executed: {next_line_executed}")
         # print("prev_line", self.prev_line_code, "next line", next_line_executed)
         self.prev_line_code = next_line_executed
@@ -941,16 +980,17 @@ class Function:
         lines[-1].fxn_json = json
 
     def to_json(self):
-        print()
-        print_aligned_lines(self.lines)
-        print()
+        # print()
+        # print_aligned_lines(self.lines)
+        # print()
         self.json = self.construct_json_object(0, len(self.lines))
-        print()
+        # print()
         return self.json
 
 
     # def construct_json_object(self, lines, offset=0):
     def construct_json_object(self, start_idx, end_idx, prev_loop_start=None, num_iters=0):
+        return [{"hello": "world"}]
         # the problem is that if I recurse, then my indices in line.loop.start_idx are all wrong
         # idx = start_idx
         json = []
@@ -1186,6 +1226,7 @@ class Trace:
         self.fxn_stack[-1].latest_execution_id = self.execution_id
 
         curr_line_locals_dict = frame.f_locals #.copy()
+        print("locals", curr_line_locals_dict)
         if event == 'exception':
             # TODO
             fxn_name = get_fxn_name(frame)

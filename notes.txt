@@ -8,8 +8,25 @@ Major todos:
         -- class InfoExtractor
     - test ast.parse(inspect.getsource(frame))
 
+    - optionally only store first, last parts of loops
+        -- add a "faster" mode which does this and other things automatically
+
 1. make self.started_antoher_iter only work for new iters and not
 
+where we use deepcopy:
+    add_object_fields_to_locals
+        think we can change this to .copy() iteratively
+        - calls: vars(value)
+        - del locals_with_objects[name] ( can get around this by ignoring anything with is_custom_object(var)
+            -- need this to make set operations clean?
+
+    - CAN UPDATE_STORED_VARS JUST DO PREV_LINE_LOCALS = FRAME.LOCALS AT THE END ?
+
+Notes:
+    What I do with ppl's code:
+        str(value)
+        isinstance(value, ...)
+        alot of accessing and reading the values (unless they are a generator type (hopefully?))
 
 curr loops:
     - not showing final loop condition evaluation -- this will be weird to fix
