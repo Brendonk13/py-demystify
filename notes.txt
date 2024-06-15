@@ -1,6 +1,6 @@
 Major todos:
-    1. loops -- change: loops should not be an array, maybe Loops class instead of Loop
-    - loops delete not-last-3
+    - multi-line declarations support
+    - cleanup loops
     - add support
     - fix smaller things
     - cat output from json
@@ -12,48 +12,7 @@ Major todos:
 
 
 curr loops:
-    - maybe the issue is passing the end_idx = iter_end + 1???
-    -- but this is kinda necessary since we need to be inclusive about the end_idx
-            - issue is that the second for loop has the wrong start_idx -- cuz the idx is not combining the length of self.lines
-            # maybe add print in the one that writes the iterations idk maybe this is fucking up the order
-
-
-need to count the loop iterations done for every loop
-- create self.saved_loop_iters = 3
-│ - when have done 2*self.saved_loop_iters+1 loop iterations: remove data for iteration: self.saved_loop_iters+1
--- THIS MAKES IT V HARD CUZ THE INDICES IN SELF.LINES WILL CHANGE CUZ THERE ARE LESS LINES
-
--- should I use an array for lines ?
-    - not good for deleting
-    - this is also bad for execution_id -- will defs be out of sync
-    -- maybe store references instead of indices, and fuck execution_id's, it will still be in the correct order, just not sequential 1,2,3
-    -- all I need to remember is how far away the end is
-    - if just mark deleted lines as None then I save time compared to deleting
-    - create a set for storing the deleted indices
-        - use merge_intervals alg for this
-        - or is it better to store the correct indices
-
-what if I split self.lines into self.permanent_lines and self.current_lines
-we will use current_lines for everything, then self.permanent_lines for creating the json
--- then can change the execution_id to be correct as we construct the json object
-
-    -- do we need to store more than 2 or 3 lines in self.current_lines or can we move them immediately
-
-        -- if we are not in a loop:
-            - append new line to self.current_lines --> a deque?
-            - if len(self.current_lines) > 3 and NOT IN LOOP:
-                self.permanent_lines.append(self.current_lines[0])
-                self.current_lines = self.current_lines[1:]
-
-        -- if we are in a loop, then first 3 iterations of each loop gets added
-        -- then when we exit the loop, we add the last 3 to permanent_lines
-
-June 10 NEXT:
-    - mark_loop_events()
-    - make it delete for random iterations
-    - test json object
-
-
+    - not showing final loop condition evaluation -- this will be weird to fix
 
 next: save this in git, see how it looks with printed on the same line and just fix formatting in general
 

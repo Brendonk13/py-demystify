@@ -18,12 +18,6 @@ class Vector:
         return Vector(self.x + other.x, self.y + other.y)
 
 
-def context_manager():
-    x = 29
-    with os.scandir(".") as entries:
-        for entry in entries:
-            x = 10
-
 def double_assignment_loop_fn(end_range):
     # x = 1
     some_dict = {"one": 1, "two": 2}
@@ -67,6 +61,15 @@ def simple_fxn():
     #     x += 1
     y = "adsd"
     return x
+
+
+@Trace()
+def test_context_manager():
+    x = 29
+    with os.scandir(".") as entries:
+        for entry in entries:
+            rand = {"entry": entry}
+            x = 10
 
 
 @Trace()
@@ -231,11 +234,11 @@ def test_nested_loops(end_range):
 
 
 if __name__ == "__main__":
-    # call the function
     # idk = test_dict(666)
     # idk = test_function_call(444)
-    test_nested_loops(5)
+    # test_nested_loops(5)
 
+    test_context_manager()
     # idk = test_multi_line_statements(444)
     # idk = test_custom_objects(123)
     # test_multiple_assignments(123)

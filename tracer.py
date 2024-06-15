@@ -295,7 +295,11 @@ class Function:
         """
 
         # create a copy so we can delete the root objects and only store their field from vars()
+        print("LOCALS", curr_line_locals_dict)
+        for k, v in curr_line_locals_dict.items():
+            if isinstance(v, 
         locals_with_objects = deepcopy(curr_line_locals_dict)
+        # locals_with_objects = curr_line_locals_dict
         # print("locals_with_objects", locals_with_objects, "locals_dict", curr_line_locals_dict)
         self.store_nested_objects(curr_line_locals_dict, locals_with_objects)
 
@@ -940,7 +944,7 @@ class Function:
         print()
         print_aligned_lines(self.lines)
         print()
-        self.json = self.construct_json_object(0, len(self.lines) - 1)
+        self.json = self.construct_json_object(0, len(self.lines))
         print()
         return self.json
 
@@ -952,20 +956,8 @@ class Function:
         json = []
         idx = start_idx
         while idx < min(len(self.lines), end_idx):
-        # for idx in range(start_idx, end_idx):
-            # need to skip indices in self.deleted_lines, ideally by setting idx = last_deleted_in_range
-            # ie deleted_lines = [10,11,12,20,21,22]
-            # maybe deleted_lines is a list of sets
-            # maybe deleted_lines is part of the loop
             line = self.lines[idx]
-            # problem is that I dont register more than one iteration
-            # there should be 2 written_iterations per thing
-            if idx > 26:
-                break
-            if line is None:
-                # Note: this doesnt seem to happen much when I would expect that it did
-                idx += 1
-                continue
+
             print(f"idx: {idx}, start_idx: {start_idx}, end_idx: {end_idx}, line: {line}")
             # todo: only add json if the field exists in order to reduce size of json
             json.append({
@@ -987,7 +979,6 @@ class Function:
             if line.type == "loop_start":
                 if line.loop is None:
                     raise TracingError(f"loop start/iteration has no loop attached, line: {line}")
-
                 if line == prev_loop_start:
                     idx += 1
                     continue
@@ -996,11 +987,10 @@ class Function:
                 json[-1]["loop"] = []
                 print(f"found loop line: {line}, iterations: {line.loop.debugging_iterations}")
 
-                if num_iters > 2:
-                # if num_iters > -1:
-                    return json
+                # if num_iters > 3:
+                # # if num_iters > -1:
+                #     return json
 
-                # idx += 1
                 end_iter = end_idx
                 start_iter = idx
 
@@ -1015,54 +1005,23 @@ class Function:
                 # print()
 
                 end_iter = end_idx
-                # start_iter = idx + 1
                 start_iter = idx
 
                 for start_line in line.loop.iteration_starts:
-                    # continue
                     print(f"json'ing from start line: {start_line}")
 
-                    # TODO: check off by one errors
-            # end_iteration_idx = start_iteration_idx + deleted_iteration["lines_in_iteration"] - 1
-                    # iteration_start = iteration["start_lines_idx"]
-                    # num_lines = iteration["lines_in_iteration"]
-                    # end_iter = iteration_start + num_lines
-                    # todo: dont need offset??
-                    # iteration_lines = self.construct_json_object(self.lines[start_idx+1:end_idx], offset=new_offset)
-
-                    # iteration_start = idx + 1 #???
-                    # end_iter = iteration_start + start_line.num_in_iteration - 1
-
-                    # end_iter = end_idx + 1 (want plus one since end_iter is exclusive)
                     end_iter = start_iter + start_line.num_in_iteration
-                    # this is not taking into account deleted indices I think ....
-                    # end_iter = start_line.end_iteration_idx + 1
-                    # start_iter = start_line.line_idx + 1
                     print(f"start_iter: {start_iter}, end: {end_iter}")
                     print()
                     iteration_lines = self.construct_json_object(start_iter, end_iter, line, num_iters + 1)
                     json[-1]["loop"].append(iteration_lines)
                     start_iter = end_iter
-                    # start: 3, end: 13
-                # idx = end_idx - 1 # - 1 since above object is from self.lines[:end_idx], which is exclusive
-                # minus one since we incremement at the end of the loop
-                # idx = end_idx - 1
                 idx = end_iter - 1
             if line.type == "return":
-                json[idx]["returned_function"] = line.returned_function
-                json[idx]["returned_value"] = line.returned_value
+                json[-1]["returned_function"] = line.returned_function
+                json[-1]["returned_value"] = line.returned_value
             idx += 1
-        print("...return...")
         return json
-
-# self.start_idx = start_idx
-# # on the first iteration of a loop, we mark the line that comes after the loop
-# # then we know a loop is complete if the execution flow skips this line (due to failed loop condition)
-# self.first_loop_line = -1
-# # use this to help check if a loop is complete
-# # self.end_idx: Optional[int] = None
-# self.end_idx = -1
-# # self.start_line: Optional[Line] = None
 
 
 
@@ -1200,7 +1159,7 @@ class Trace:
             # not sure if this is the correct json
             self.json = json
             if 1:
-                pprint(json, sort_dicts=False)
+                pprint(json, sort_dicts=False, width=100)
         # print("AFTER pop", self.fxn_stack)
 
 
@@ -1360,6 +1319,30 @@ def print_aligned_lines(lines):
         s = f"{parts[0].ljust(max_lens[0])}, {parts[1].ljust(max_lens[1])}, {parts[2].ljust(max_lens[2])}"
         print(s)
         # output.append(line.split(",")
+
+
+def object_copy(instance, init_args=None):
+    # https://stackoverflow.com/a/48528831
+
+    if init_args:
+        new_obj = instance.__class__(**init_args)
+    else:
+        new_obj = instance.__class__()
+    if hasattr(instance, '__dict__'):
+        for k in instance.__dict__ :
+            try:
+                attr_copy = copy.deepcopy(getattr(instance, k))
+            except Exception as e:
+                attr_copy = object_copy(getattr(instance, k))
+            setattr(new_obj, k, attr_copy)
+
+        new_attrs = list(new_obj.__dict__.keys())
+        for k in new_attrs:
+            if not hasattr(instance, k):
+                delattr(new_obj, k)
+        return new_obj
+    else:
+        return instance
 
 
 def get_for_loop_line_numbers(source):
