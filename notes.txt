@@ -1,3 +1,246 @@
+Major todos:
+    - multi-line declarations support
+    - cleanup loops
+    - add support
+    - fix smaller things
+    - cat output from json
+    - move changed_values (to self.changed_values) and other things to class dedicated to finding changes etc
+        -- class InfoExtractor
+    - test ast.parse(inspect.getsource(frame))
+
+1. make self.started_antoher_iter only work for new iters and not
+
+
+curr loops:
+    - not showing final loop condition evaluation -- this will be weird to fix
+
+next: save this in git, see how it looks with printed on the same line and just fix formatting in general
+
+NEXT: WORK ON THE ASSIGNED_CONSTANT PART TO USE THE FUNCTION INTERPRET_EXPRESSION
+try to do a substitution for an if statement ?
+or commit the work and start working on the one that generates a file
+NEXT: when showing objects with changed fields, only record the field that changed, not both X and Y when only X is changed
+
+
+Note: this thing kinda sucks at interpreting non-obvious things
+*  119 │   y = [2]  #  y = [2]
+*  121 │   y += ["a"]  #  y + = ["a"]
+  y=[2] ──> new value: [2, 'a']
+
+
+NEXT:
+- MAKE STUPID MULTI-LINE STATEMENTS WORK
+How?
+- at the beginning of a function, find all multi-line statements by parsing the ast....
+- then when we encounter these lines, we know we're in a multi-line statemtne in advance
+
+Note on classes:
+    def Vector(x, y)
+    ...
+    y = Vector(0, 1)
+-- first the variables x, y, self are created in the LOCAL SCOPE BEFORE the new function call appends a set() to the prev_line_locals_stack stack
+
+
+
+
+NOT WORKING:
+    - with statements maybe not possible
+    - make if statements do replacement ie: if x: ==> if 10:
+        -- what about if some_dict.get("key"):
+        -- and return y[-1]
+        -- the python side of things may need to run "exec" to get these values however this may not be safe to do
+        test function calls: x.append(Vector(x,y)) # x.append(Vector(1, 2))
+
+Done:
+    - make loops work
+    test: [] += [a]
+    - return x, y, z()
+    - object properties changing
+        - object.some_value = 10
+    - del some_dict[key]
+    some_dict[key] = 2
+
+    *  63 │   y = {**{"some": "dict"}, **y}  # y = {'some': 'dict', 'one': 1, 'two': 22}
+        y=(('one', 1), ('two', 22)) ──> new value: {'some': 'dict', 'one': 1, 'two': 22}
+
+
+Todo:
+    - dont show value changes for loop variables -- just show inline ie for x in range(3): # x = 1
+    - keep indentation -- may need to get this value from frame object
+    - make strings have quotes around them ie: instead of b=b --> ... HAVE: b='b' --> ...
+    - ASYNC
+    - Note: I think if statements wont work great since we wont show the code paths that dont execute and there is a chance we have to interpret those values ourselves
+        -- this should be a flag "eval_all_branch_paths"
+    - add more substitution logic for function calls and such
+    ie: Vector(x,y) shows Vector(0, 1)
+    -- same for loops -- maybe not possible though
+
+    - delete inline comments
+        - dont have to worry about multi-line strings since those dont have comments
+        - how do I tell if a comment is inside a string or not
+    - how to tell when a multi-line anything is complete
+    - https://github.com/alexmojaki/executing?tab=readme-ov-file#libraries-that-use-this ?
+    -- this can get the ast from a frame object
+
+
+    I think I need to use the dis module to find intermediate fxn return values
+
+    INSTEAD OF:
+        y=<generator object complex_fxn.<locals>.<genexpr> at 0x7ffb2d46ae90> ──> new value: <__main__.Vector object at 0x7ffb2d2caa10>
+    WE DO:
+        y=generator --> new value: Vector(0,1)
+    ==> need to remember that signature for an object declaration
+
+convert to file writing:
+    - then I can just print things and not have intermediate functions print in order of execution
+
+
+Not working:
+
+    currently printing the next line number instead of the last one
+    how I handle lists
+
+    not sure if I should be using a set anymore ..
+    cuz i gotta convert hella other stuff to set each time
+
+    Returns:
+        a returned value doesnt print unless its a reassignment
+            y = 5
+            y = othh()
+            works
+
+            y = othh()
+            -- prints nothing
+
+
+Try:
+    https://github.com/alexmojaki/executing
+    - to get extra execution info for a frame
+
+next:
+    - keep checking out competition
+
+Other projects which trace code:
+    https://mostlynerdless.de/blog/2023/10/06/lets-create-a-python-debugger-together-part-2/
+
+    https://github.com/ionelmc/python-hunter?tab=readme-ov-file#faq
+    - smiley https://pypi.org/project/smiley/
+
+Note: dont think my method for tracking variable changes for objects will work for when I add support for searching for certain value changes
+- ie: v = Vector(); other_fn(vect); vect.x = 10
+- my model is based on variable names so if im searching for changes to v, vect.x wont register
+- could get around this by noting when the variable im searching for has initially been declared
+- then when u pass it to a fxn, its object ID is marked as being in that fxn
+
+all frame components explained: https://explog.in/notes/settrace.html
+ex.) frame.f_code:
+│     {'_co_code_adaptive': b'\x97\x00d\x01d\x02|\x00d\x03\x9c\x03}\x01d\x00S\x00',
+│  'co_argcount': 1,
+│  'co_cellvars': (),
+│  'co_code': b'\x97\x00d\x01d\x02|\x00d\x03\x9c\x03}\x01d\x00S\x00',
+│  'co_consts': (None, 'world', 1, ('hello', 'one', 'last')),
+│  'co_exceptiontable': b'',
+│  'co_filename': '/home/brendon/dev/dev/my_projects/print/2024/test.py',
+│  'co_firstlineno': 102,
+│  'co_flags': 3,
+│  'co_freevars': (),
+│  'co_kwonlyargcount': 0,
+│  'co_linetable': b'\x80\x00\xf0\x0c\x00\x12\x19\xd8\x0f\x10\xd8\x10'
+│                  b'\x19\xf0\x07\x05\r\x06\xf0\x00\x05\r\x06\x80E\x80E\x80E',
+│  'co_lnotab': b'\x02\x06\x02\x01\x02\x01\x02\xfd',
+│  'co_name': 'test_multi_line_statements',
+│  'co_names': (),
+│  'co_nlocals': 2,
+│  'co_posonlyargcount': 0,
+│  'co_qualname': 'test_multi_line_statements',
+│  'co_stacksize': 4,
+│  'co_varnames': ('input_arg', 'other')}
+
+
+think I need a database
+- at least do sqllite
+- would just be so much work to parse the csv and would be super slow
+
+what If I did it in json
+
+todo:
+    - for each print, this should be an interaction with self.function_stack[-1]
+    - for each access of self.printed_line or self.additional_line, this should be an interaction with self.function_stack[-1]
+
+    - find stateful and stateless functions
+    - move the stateless ones out of the class
+
+debug_mode:
+    # debug prints in execution order: not clear for multiple functions
+    # console uses the json to print one function at a time
+    # file just writes a json file
+
+JSON: [
+    ..., ..., ..., ...,
+    {
+        execution_id: 5,
+        file_name:
+        line_number,
+        original_line:   "y = other_fn()"
+        formatted_line:  "y = 10",
+        additional_line: "y=0 -> y=10",
+        function_signature: ""
+        type: "function_call",      # "line | function_start | function_call | return | exception | loop"
+        caller_execution_id: -- not needed since we can just go back a layer in the json
+        -- I think that this was only needed for the csv
+        -- this may still be helpful, but when does a random line need to know what function it is in
+        inner_code: [
+            {
+                execution_id: 6,
+                file_name:
+                line_number,
+                original_line: "def other_fn(input_arg=678)"
+                formatted_line: "", # always blank for new function
+                additional_line: "", # always blank for new function
+                type: "line | function_start | function_call | return | exception | loop"
+
+                │ function_signature: "def idk(input_arg=678):"
+                │ MAYBE dont need this since the function_signature can be accessed as the first element of every array???
+                inner_code: "", # -- idea: have all function code inside of this ie: [{function_call: [{line1, line2}]}]
+                    -- bad idea: 
+            },
+            {
+                execution_id: 7,
+                original_line: "for i in range(10)"
+                type: "loop"
+                inner_code: [
+                    {
+                        loop_iteration_number: ""
+                        loop_var_value: ""
+                        original_line: "q = extract_q(i)"
+                        formatted_line: "q = 99"
+                        inner_code: [{}]
+                    },
+                ],
+            },
+        ],
+    },
+]
+
+DB:
+function:
+- line_id
+- execution_id
+
+CSV:
+    curr function:
+        - signature
+    prev function:
+        - signature
+    Line:
+        - line_num
+        - changed_values?
+        - code
+        - formatted_line
+        - additional_line
+
+CSV: execution_id, file_name, line_num, caller_line_number -- use execution_id??, function_signature, caller_function_signature, original_line, formatted_line, additional_line
+should I sort the csv in some way at the end ??
 
 Todo:
     create global set of values
@@ -18,6 +261,35 @@ convert to file writing:
 
     -- problem: how to make it clear for when the same function is called twice with diff arguments
 
+OLD LOOPS NOTES
+idea is to create class: Lines:
+-- then instead of lines[-1].add_return()
+-- self.lines.add_return()
+-- this function finds the right line to add the return statement to
+self.lines[-1].fxn_json = json
+-- instead, Lines class will find the correct place to add the json
+then Function class would just keep track of states and compute things by parsing prev_line_code, changed_values
+Lines class can remember nested indices and append an index every time a new loop or fxn is added
+ie on finding first loop:
+self.curr_index.append(("loop", len(self.loops) - 1)
+    then when we call a function:
+    │ shit happens as normal, then when self.fxn_stack[-1].add_json(json) is called:
+        - we parse self.loops
+        how do we know when a loop is done or if we are encountering a new loop -- line numbers
+        on each traversal of a loop, we set self.last_line = max(self.last_line, curr_loop_last_line )
+
+WE KNOW LOOPS ARE DONE SINCE YOU ALWAYS EXECUTE THE SAME LINE AFTER THE LOOP CONDITION
+SO THE FIRST TIME WE ITERATE, WE DENOTE THE FIRST LINE NUMBER OF THE FILE IS THE FIRST LINE AFTER THE LOOP CONDITION: for i in range
+-- we check the control flow, if the line after a loop condition is not the expected one, then the loop is done !!!
+
+-- dont change how I store lines, just convert everything when converting to json
+
+
+In github readme:
+    Reasons this is sick:
+        - often think a prog not working cuz of wrong thing, instead of adding a print for what u think it is
+        - showing changes is what u want
+        - no dependencies!
 
 Not working:
 
@@ -32,3 +304,9 @@ Not working:
 
             y = othh()
             -- prints nothing
+
+
+        # NOTE: can get more detailed call info: https://docs.python.org/3/library/inspect.html#inspect.getcallargs
+        # also here: https://docs.python.org/3/library/inspect.html#inspect.formatargvalues
+        # or: https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
+        # inspect has a lot of functionality for all sorts of details for function calls
