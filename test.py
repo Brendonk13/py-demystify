@@ -236,10 +236,10 @@ def test_nested_loops(end_range):
 if __name__ == "__main__":
 
     # idk = test_dict(666)
-    # idk = test_function_call(444)
+    idk = test_function_call(444)
     # test_nested_loops(5)
 
-    idk = test_custom_objects(123)
+    # idk = test_custom_objects(123)
     # test_context_manager()
     # idk = test_multi_line_statements(444)
     # test_multiple_assignments(123)

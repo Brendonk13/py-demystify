@@ -13,9 +13,15 @@ import os
 import traceback
 from re import search
 # from collections.abc import I
-from colorama import Fore, Back, Style, init
+# from colorama import Fore, Back, Style, init
 import colorful as cf
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import Terminal256Formatter
+
 from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
+
+
 
 class TracingError(Exception):
     pass
@@ -82,7 +88,18 @@ class Line:
         if self.print_mode == "json":
             return
         # todo: add uncolored_formatted_line, uncolored_original_line
-        original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{self.original_line.lstrip(' ')}"
+
+        original_line =  self.original_line.lstrip(' ')
+
+        original_line = highlight(self.original_line.lstrip(' '),
+                lexer=get_lexer_by_name("python"),
+                formatter=Terminal256Formatter(style="solarized-dark")).rstrip("\n")
+
+        # original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{x}"
+        # formatted_line = f"{original_line} {self.formatted_line}"
+
+
+        original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{original_line}"
         formatted_line = f"{original_line} {self.formatted_line}"
         print(formatted_line)
         if self.additional_line:
@@ -231,10 +248,15 @@ class Function:
             print(cf.yellow(f'... calling {fxn_signature}'))
 
 
-    def add_exception(self, fxn_name: str, arg):
-        # todo: replace fxn_name with self.fxn_signature
+    # todo: get the type of the arg
+    def add_exception(self, arg):
+        # todo: test
+        lines = self.get_current_lines()
         tb = ''.join(traceback.format_exception(*arg)).strip()
-        print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
+        lines.append(Line(tb, self.latest_execution_id, "exception", self.prev_line_number, self.print_mode))
+        if self.print_mode == "debug":
+            print('%s raised an exception:%s%s' % (self.fxn_signature, os.linesep, tb))
+
 
     def print_on_return(self, fxn_name: str, fxn_signature: str, returned_value: Any):
         # reset this value once we leave a function (we set this to true if self in locals)
@@ -963,17 +985,15 @@ class Function:
         return self.json
 
 
-    # def construct_json_object(self, lines, offset=0):
     def construct_json_object(self, start_idx, end_idx, prev_loop_start=None, num_iters=0):
-        # the problem is that if I recurse, then my indices in line.loop.start_idx are all wrong
-        # idx = start_idx
-        return [{"one": 1}]
+        # return [{"one": 1}]
+
         json = []
         idx = start_idx
         while idx < min(len(self.lines), end_idx):
             line = self.lines[idx]
 
-            print(f"idx: {idx}, start_idx: {start_idx}, end_idx: {end_idx}, line: {line}")
+            # print(f"idx: {idx}, start_idx: {start_idx}, end_idx: {end_idx}, line: {line}")
             # todo: only add json if the field exists in order to reduce size of json
             json.append({
                 "execution_id": line.execution_id,
@@ -998,9 +1018,9 @@ class Function:
                     idx += 1
                     continue
 
-                print()
+                # print()
                 json[-1]["loop"] = []
-                print(f"found loop line: {line}, iterations: {line.loop.debugging_iterations}")
+                # print(f"found loop line: {line}, iterations: {line.loop.debugging_iterations}")
 
                 # if num_iters > 3:
                 # # if num_iters > -1:
@@ -1010,12 +1030,11 @@ class Function:
                 start_iter = idx
 
                 # print()
-                print("iteration starts, num iterations: ", len(line.loop.iteration_starts))
+                # print("iteration starts, num iterations: ", len(line.loop.iteration_starts))
                 for l in line.loop.iteration_starts:
                     end_iter = start_iter + l.num_in_iteration
-                    print(f"loop starts: start: {start_iter}, end: {end_iter}, num_in_iteration: {l.num_in_iteration}")
-                    # print(f"start line: {self.lines[start_iter]}, end line: {self.lines[end_iter]}, line after end: {self.lines[l.end_iteration_idx+1]}")
-                    print(f"start line: {self.lines[start_iter]}, end line: {self.lines[end_iter]}")
+                    # print(f"loop starts: start: {start_iter}, end: {end_iter}, num_in_iteration: {l.num_in_iteration}")
+                    # print(f"start line: {self.lines[start_iter]}, end line: {self.lines[end_iter]}")
                     start_iter = end_iter
                 # print()
 
@@ -1023,11 +1042,11 @@ class Function:
                 start_iter = idx
 
                 for start_line in line.loop.iteration_starts:
-                    print(f"json'ing from start line: {start_line}")
+                    # print(f"json'ing from start line: {start_line}")
 
                     end_iter = start_iter + start_line.num_in_iteration
-                    print(f"start_iter: {start_iter}, end: {end_iter}")
-                    print()
+                    # print(f"start_iter: {start_iter}, end: {end_iter}")
+                    # print()
                     iteration_lines = self.construct_json_object(start_iter, end_iter, line, num_iters + 1)
                     json[-1]["loop"].append(iteration_lines)
                     start_iter = end_iter
@@ -1065,7 +1084,7 @@ class Trace:
         self.first_function = True
         self.execution_id = 0
         self.prev_trace = sys.gettrace()
-        self.fxn_stack = []
+        self.fxn_stack: List[Function]  = []
 
         self.json = []
         # todo: get value from env var
@@ -1194,21 +1213,21 @@ class Trace:
 
             maybe pass a reference ? feels wrong but is simple to make sure everything is up to date
         """
-        # clear last results
-        # maybe we pass this as a reference
-        # if self.execution_id > 7:
-        #     return
+
         self.fxn_stack[-1].latest_execution_id = self.execution_id
 
         curr_line_locals_dict = frame.f_locals #.copy()
         if event == 'exception':
             # TODO
-            fxn_name = get_fxn_name(frame)
+            # fxn_name = get_fxn_name(frame)
             # fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
-            signature = get_fxn_signature(frame)
-            print('The function call: %s produced an exception:\n' % signature)
-            tb = ''.join(traceback.format_exception(*arg)).strip()
-            print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
+            # signature = get_fxn_signature(frame)
+            # print('The function call: %s produced an exception:\n' % signature)
+
+            # tb = ''.join(traceback.format_exception(*arg)).strip()
+            self.fxn_stack[-1].add_exception(arg)
+            # print('%s raised an exception:%s%s' % (fxn_name, os.linesep, tb))
+
             #set a flag to print nothing else
             # raise TracingError("EXCEPTION")
             # return

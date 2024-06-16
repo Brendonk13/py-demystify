@@ -11,6 +11,14 @@ Major todos:
     - optionally only store first, last parts of loops
         -- add a "faster" mode which does this and other things automatically
 
+Before Release:
+    - option to only store first X, last X elements of a loop ie x = [1,2,3,4,5,6,7,8,9] -> [1,2,3,...,7,8,9]
+    - multi-line statements
+    - cleanup loops
+    - move changed_values to class
+    - make "console" output mode print nice, using the json
+    - support for doing things faster ie only tracing certain vars
+
 where we use deepcopy:
     add_object_fields_to_locals
         think we can change this to .copy() iteratively
@@ -234,68 +242,7 @@ JSON: [
     },
 ]
 
-DB:
-function:
-- line_id
-- execution_id
-
-CSV:
-    curr function:
-        - signature
-    prev function:
-        - signature
-    Line:
-        - line_num
-        - changed_values?
-        - code
-        - formatted_line
-        - additional_line
-
-CSV: execution_id, file_name, line_num, caller_line_number -- use execution_id??, function_signature, caller_function_signature, original_line, formatted_line, additional_line
-should I sort the csv in some way at the end ??
-
-Todo:
-    create global set of values
-    figure out the diff shit and q's i wrote down
-
-    new csv header:
-        - the time a function was called in case we call the same fxn with same args each time
-            -- ie
-            for _ in [1,2]:
-                fn()
-            has 2 lines in the csv for this loop
-            the new header is a number 1, 2 for each time it is called with the same signature
-
-    I think I need to use the dis module to find intermediate fxn return values
-
-convert to file writing:
-    - then I can just print things and not have intermediate functions print in order of execution
-
-    -- problem: how to make it clear for when the same function is called twice with diff arguments
-
-OLD LOOPS NOTES
-idea is to create class: Lines:
--- then instead of lines[-1].add_return()
--- self.lines.add_return()
--- this function finds the right line to add the return statement to
-self.lines[-1].fxn_json = json
--- instead, Lines class will find the correct place to add the json
-then Function class would just keep track of states and compute things by parsing prev_line_code, changed_values
-Lines class can remember nested indices and append an index every time a new loop or fxn is added
-ie on finding first loop:
-self.curr_index.append(("loop", len(self.loops) - 1)
-    then when we call a function:
-    │ shit happens as normal, then when self.fxn_stack[-1].add_json(json) is called:
-        - we parse self.loops
-        how do we know when a loop is done or if we are encountering a new loop -- line numbers
-        on each traversal of a loop, we set self.last_line = max(self.last_line, curr_loop_last_line )
-
-WE KNOW LOOPS ARE DONE SINCE YOU ALWAYS EXECUTE THE SAME LINE AFTER THE LOOP CONDITION
-SO THE FIRST TIME WE ITERATE, WE DENOTE THE FIRST LINE NUMBER OF THE FILE IS THE FIRST LINE AFTER THE LOOP CONDITION: for i in range
--- we check the control flow, if the line after a loop condition is not the expected one, then the loop is done !!!
-
--- dont change how I store lines, just convert everything when converting to json
-
+I think I need to use the dis module to find intermediate fxn return values
 
 In github readme:
     Reasons this is sick:
@@ -305,20 +252,11 @@ In github readme:
 
 Not working:
 
-    not sure if I should be using a set anymore ..
-    cuz i gotta convert hella other stuff to set each time
-
-    Returns:
-        a returned value doesnt print unless its a reassignment
-            y = 5
-            y = othh()
-            works
-
-            y = othh()
-            -- prints nothing
-
-
         # NOTE: can get more detailed call info: https://docs.python.org/3/library/inspect.html#inspect.getcallargs
         # also here: https://docs.python.org/3/library/inspect.html#inspect.formatargvalues
         # or: https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
         # inspect has a lot of functionality for all sorts of details for function calls
+
+
+frontend:
+    - the website should be able to generate things to trace for (ie click a var_name and it generates a Trace(...stuff here...) line)
