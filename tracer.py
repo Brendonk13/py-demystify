@@ -18,6 +18,8 @@ import colorful as cf
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import Terminal256Formatter
+from pygments import lex
+from pygments.token import Token as ParseToken
 
 from helpers import investigate_frames, print_all, get_file_name, get_fxn_name, get_fxn_signature
 
@@ -27,7 +29,7 @@ class TracingError(Exception):
     pass
 
 class Line:
-    def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str):
+    def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str, print_offset: int = 0):
         # other: line_num
         self.original_line = code.lstrip(" ")
         # todo: add type information for all changes
@@ -39,10 +41,14 @@ class Line:
         self.type = type
         # only relevant if type == "loop_start"
         self.loop_idx = 0
+        self.strip_comments = True
+        self.syntax_highlight = True
         self.line_number = line_number
         # means that we produce a json file
         self.print_mode = print_mode
         self.fxn_json = []
+
+        self.print_offset = print_offset
 
         # for loops
         self.num_in_iteration = 0
@@ -89,18 +95,20 @@ class Line:
             return
         # todo: add uncolored_formatted_line, uncolored_original_line
 
-        original_line =  self.original_line.lstrip(' ')
+        original_line = self.original_line.lstrip(' ')
+        if self.strip_comments:
+            original_line = strip_inline_comments(original_line)
 
-        original_line = highlight(self.original_line.lstrip(' '),
+        if self.syntax_highlight:
+            original_line = highlight(
+                original_line,
                 lexer=get_lexer_by_name("python"),
-                formatter=Terminal256Formatter(style="solarized-dark")).rstrip("\n")
+                formatter=Terminal256Formatter(style="solarized-dark")
+            ).rstrip("\n")
 
-        # original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{x}"
-        # formatted_line = f"{original_line} {self.formatted_line}"
-
-
-        original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{original_line}"
+        original_line =  f"{self.print_offset * 2 * ' '}{cf.cyan(f'*  {self.line_number} │  ')}{original_line}"
         formatted_line = f"{original_line} {self.formatted_line}"
+
         print(formatted_line)
         if self.additional_line:
             print(self.additional_line)
@@ -179,13 +187,15 @@ class Function:
     maybe this only stores the variables and handles finding new values through implementing __hash__
     """
     # def __init__(self, file_name, object_prefix, fxn_signature, execution_id, fxn_name):
-    def __init__(self, frame: FrameType, execution_id: int, object_prefix="_TRACKED_", num_loops_stored=3):
+    def __init__(self, frame: FrameType, execution_id: int, object_prefix="_TRACKED_", num_loops_stored=3, print_offset: int = 0):
         # need info from the previous function
         self.prev_line_locals_set = set()
         self.prev_line_locals_dict = dict()
         file_name = get_file_name(frame)
         # fxn_name = get_fxn_name(frame)
         fxn_signature = get_fxn_signature(frame)
+
+        self.print_offset = print_offset
 
         # -- Note: even if we used a database to write intermediate results to reduce memory complexity, we would still need
         # to store the sets/dicts of locals in memory since we need the actual object references and types, etc
@@ -238,7 +248,7 @@ class Function:
     def print_on_func_call(self, fxn_signature, line_number):
         lines = self.get_current_lines()
         # if not self.loop_stack:
-        lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
+        lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode, self.print_offset))
         # else:
             # self.loop_lines.append(Line(fxn_signature, self.latest_execution_id, "fxn_call", line_number, self.print_mode))
         # self.loop_lines[-1].line_idx = len(self.lines) - 1
@@ -253,7 +263,7 @@ class Function:
         # todo: test
         lines = self.get_current_lines()
         tb = ''.join(traceback.format_exception(*arg)).strip()
-        lines.append(Line(tb, self.latest_execution_id, "exception", self.prev_line_number, self.print_mode))
+        lines.append(Line(tb, self.latest_execution_id, "exception", self.prev_line_number, self.print_mode, self.print_offset))
         if self.print_mode == "debug":
             print('%s raised an exception:%s%s' % (self.fxn_signature, os.linesep, tb))
 
@@ -693,7 +703,7 @@ class Function:
         if self.prev_line_code == "":
             return False
 
-        new_line = Line(self.prev_line_code, self.latest_execution_id, "code", self.prev_line_number, self.print_mode)
+        new_line = Line(self.prev_line_code, self.latest_execution_id, "code", self.prev_line_number, self.print_mode, self.print_offset)
         lines = self.lines
 
         if self.just_left_loop(new_line):
@@ -1297,7 +1307,7 @@ class Trace:
 
 
     def add_new_function_call(self, frame: FrameType):
-        self.fxn_stack.append(Function(frame, self.execution_id, self.object_prefix, self.num_loops_stored))
+        self.fxn_stack.append(Function(frame, self.execution_id, self.object_prefix, self.num_loops_stored, len(self.fxn_stack)))
         # this causes immediate prints instead of deferring prints to this class
         self.fxn_stack[-1].print_mode = self.print_mode
         self.fxn_stack[-1].print_on_func_call(get_fxn_signature(frame), frame.f_lineno)
@@ -1395,3 +1405,25 @@ def find_end_lineno(node):
     while hasattr(last_child, 'body') and last_child.body:
         last_child = last_child.body[-1]
     return last_child.lineno
+
+
+def strip_inline_comments(replace_query):
+    # https://stackoverflow.com/a/65104145
+    lexer = get_lexer_by_name("python")
+    generator = lex(replace_query, lexer)
+    line = []
+    lines = []
+    for token in generator:
+        token_type = token[0]
+        token_text = token[1]
+        if token_type in ParseToken.Comment:
+            continue
+        line.append(token_text)
+        if token_text == '\n':
+            lines.append(''.join(line))
+            line = []
+    if line:
+        line.append('\n')
+        lines.append(''.join(line))
+    strip_query = "\n".join(lines)
+    return strip_query
