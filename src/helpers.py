@@ -1,3 +1,5 @@
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
 import inspect
 from pprint import pprint
 

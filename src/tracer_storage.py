@@ -1,4 +1,18 @@
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import Terminal256Formatter
+import colorful as cf
+
+import inspect
+import traceback
+import os
+import re
+from itertools import islice
+from collections import deque
 from types import GeneratorType, FrameType,  TracebackType
+from typing import Any, Deque, ItemsView, List, Type, Dict, Callable, Optional
+
+from .helpers import strip_inline_comments, TracingError, print_aligned_lines, get_file_name, get_fxn_signature, print_all_iterations
 
 class Line:
     def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str, print_offset: int = 0):
@@ -610,8 +624,8 @@ class Function:
         # TODO: add case for +=, *=, etc -- these should be considered non-obvious
         if (
             expression.isdigit()
-            or search(r'^".*"$', expression) # search for string assignment
-            or search(r"^'.*'$", expression) # search for string assignment
+            or re.search(r'^".*"$', expression) # search for string assignment
+            or re.search(r"^'.*'$", expression) # search for string assignment
             or expression.startswith('return') # TODO: delete this so we can do interpretations on return (-- then maybe just delete the "a_fn() returned XXX line)
         ):
                 return True
