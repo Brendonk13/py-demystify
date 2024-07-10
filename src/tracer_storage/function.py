@@ -1,166 +1,17 @@
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import Terminal256Formatter
-import colorful as cf
-
-import inspect
 import traceback
+import inspect
 import os
 import re
-from itertools import islice
+from typing import List, Any, Dict, ItemsView
+from types import GeneratorType, FrameType
 from collections import deque
-from types import GeneratorType, FrameType,  TracebackType
-from typing import Any, Deque, ItemsView, List, Type, Dict, Callable, Optional
+from itertools import islice
 
-from .helpers import strip_inline_comments, TracingError, print_aligned_lines, get_file_name, get_fxn_signature, print_all_iterations
+import colorful as cf
 
-class Line:
-    def __init__(self, code: str, execution_id: int, type: str, line_number: int, print_mode: str, print_offset: int = 0):
-        # other: line_num
-        self.original_line = code.lstrip(" ")
-        # todo: add type information for all changes
-        self.formatted_line = ""
-        # todo: add type information for all changes
-        self.additional_line = ""
-        self.uncolored_additional_line = ""
-        self.execution_id = execution_id
-        self.type = type
-        # only relevant if type == "loop_start"
-        self.loop_idx = 0
-        self.strip_comments = True
-        self.syntax_highlight = True
-        self.line_number = line_number
-        # means that we produce a json file
-        self.print_mode = print_mode
-        self.fxn_json = []
-
-        self.print_offset = print_offset
-
-        # for loops
-        self.num_in_iteration = 0
-
-        self.line_idx = -1
-        self.end_iteration_idx = -1
-
-        # have access to loop info for easy parsing to json
-        self.loop: Optional[Loop] = None
-
-        # not sure if I need this as a field
-        self.changed_values = {}
-
-    def __repr__(self):
-        # return f'Line(type={self.type}, line="{self.original_line}", execution_id={self.execution_id}, additional_line: {self.uncolored_additional_line})'
-        return f'Line(exec_id={self.execution_id}, code="{self.original_line}", type={self.type})'
-
-    def __str__(self):
-        return self.__repr__()
-
-    def create_formatted_line(self, var_names: List[str], values: List[Any]):
-        line = cf.cyan("  #") if self.print_mode == "debug" else "  #"
-        num_vars = len(var_names)
-        # construct formatted_line
-        line_has_variables = False
-        for i in range(num_vars):
-            var_name, value = var_names[i], values[i]
-            if var_name != "":
-                line_has_variables = True
-            new_part = f" {var_name} = {value}"
-
-            # add a comma for all but last element
-            if  i < num_vars - 1:
-                new_part += ","
-            line += new_part
-
-        # don't print anything if there are no variables, happens on last loop condition evaluation: for i in range(0)
-        if line_has_variables:
-            self.formatted_line = "".join(line)
-
-
-    def print_line(self):
-        if self.print_mode == "json":
-            return
-        # todo: add uncolored_formatted_line, uncolored_original_line
-
-        original_line = self.original_line.lstrip(' ')
-        if self.strip_comments:
-            original_line = strip_inline_comments(original_line)
-
-        if self.syntax_highlight:
-            original_line = highlight(
-                original_line,
-                lexer=get_lexer_by_name("python"),
-                formatter=Terminal256Formatter(style="solarized-dark")
-            ).rstrip("\n")
-
-        original_line =  f"{self.print_offset * 2 * ' '}{cf.cyan(f'*  {self.line_number} │  ')}{original_line}"
-        formatted_line = f"{original_line} {self.formatted_line}"
-
-        print(formatted_line)
-        if self.additional_line:
-            print(self.additional_line)
-
-
-    def add_return(self, fxn_name: str, fxn_signature: str, returned_value: Any):
-        self.type = "return"
-        self.returned_value = returned_value
-        self.returned_function = fxn_name
-        self.fxn_signature = fxn_signature
-
-    def print_return(self):
-        if self.type != "return":
-            raise TracingError(f"Cannot print return for line: {self}")
-        if self.print_mode == "debug":
-            # print(f"{cf.yellow(f'-> {self.returned_function} returned')} {cf.cyan(self.returned_value)}")
-            print(f"{cf.yellow(f'-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
-
-
-
-class Loop:
-    def __init__(self, line, start_line_number):
-        # this an index into Function.lines so we can find the line where a loop started
-        # self.line = line
-        self.line = line
-        # on the first iteration of a loop, we mark the line that comes after the loop
-        # then we know a loop is complete if the execution flow skips this line (due to failed loop condition)
-        self.first_loop_line = -1
-        # use this to help check if a loop is complete
-        # self.end_idx: Optional[int] = None
-        # self.end_idx = -1
-        # self.start_line: Optional[Line] = None
-        self.have_written_first_iterations = False
-        # self.iterations = deque([{"line": line, "start_lines_idx": start_lines_idx}])
-        self.iterations: Deque[List[Line]] = deque()
-        # self.iterations.append([])
-        self.iteration_starts : List[Line] = []
-        # self.written_iterations = []
-        # need to be able to delete from the front easily
-        # but need to make sure we dont delete the first iterations
-        # also need to
-        # self.debugging_iterations = []
-        # self.written_iterations = []
-        # need to be able to delete from the front easily
-        # but need to make sure we dont delete the first iterations
-        # also need to
-        self.debugging_iterations = []
-
-        # issue is something is converting from a dict to LIST
-
-        # self.deleted_indices = set()
-
-        # maybe dont need this
-        self.start_line_number = start_line_number
-
-    def __repr__(self):
-        # return f"Loop(start_line: {self.line.line_number}, first_line={self.first_loop_line} wrote_first_iters={self.have_written_first_iterations})"
-        return f"Loop(line: {self.line.original_line.strip()}, start_line: {self.line.line_number}, first_line={self.first_loop_line}, wrote_first_iters={self.have_written_first_iterations})"
-    def __str__(self):
-        return self.__repr__()
-
-    def print_iterations(self):
-        lines = []
-        for iteration in self.iterations:
-            lines += iteration
-        print_aligned_lines(lines)
+from . import Line
+from . import Loop
+from ..helpers import TracingError, get_file_name, get_fxn_signature, print_all_iterations
 
 class Function:
     """
@@ -844,7 +695,8 @@ class Function:
         )
 
     def find_current_loop(self):
-        for idx, loop in enumerate(self.loop_stack):
+        # for idx, loop in enumerate(self.loop_stack):
+        for loop in self.loop_stack:
             if self.prev_line_number == loop.start_line_number:
                 return loop
 
@@ -1050,3 +902,4 @@ class Function:
                 json[-1]["returned_value"] = line.returned_value
             idx += 1
         return json
+
