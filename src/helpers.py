@@ -1,7 +1,11 @@
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
+import ast
+import copy
 import inspect
 from pprint import pprint
+
+from pygments.lexers import get_lexer_by_name
+from pygments import lex
+from pygments.token import Token as ParseToken
 
 class TracingError(Exception):
     pass
@@ -106,7 +110,7 @@ def object_copy(instance, init_args=None):
         for k in instance.__dict__ :
             try:
                 attr_copy = copy.deepcopy(getattr(instance, k))
-            except Exception as e:
+            except Exception:
                 attr_copy = object_copy(getattr(instance, k))
             setattr(new_obj, k, attr_copy)
 

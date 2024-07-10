@@ -1,4 +1,4 @@
-from tracer import Trace
+from src.tracer import Trace
 import os
 
 class Oth:
