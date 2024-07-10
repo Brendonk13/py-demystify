@@ -89,6 +89,7 @@ class Line:
             ).rstrip("\n")
 
         original_line =  f"{self.print_offset * 2 * ' '}{cf.cyan(f'*  {self.line_number} │  ')}{original_line}"
+        # original_line =  f"{cf.cyan(f'*  {self.line_number} │  ')}{self.print_offset * 2 * ' '}{original_line}"
         formatted_line = f"{original_line} {self.formatted_line}"
 
         print(formatted_line)
@@ -107,5 +108,5 @@ class Line:
             raise TracingError(f"Cannot print return for line: {self}")
         if self.print_mode == "debug":
             # print(f"{cf.yellow(f'-> {self.returned_function} returned')} {cf.cyan(self.returned_value)}")
-            print(f"{cf.yellow(f'-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
+            print(f"{cf.yellow(f'{(self.print_offset - 1) * 2 * ' '}-> {self.fxn_signature} returned')} {cf.cyan(self.returned_value)}")
 

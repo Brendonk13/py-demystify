@@ -90,7 +90,7 @@ class Function:
 
         self.latest_execution_id += 1
         if self.print_mode == "debug":
-            print(cf.yellow(f'... calling {fxn_signature}'))
+            print(cf.yellow(f'{(self.print_offset - 1) * 2 * ' '}... calling {fxn_signature}'))
 
 
     # todo: get the type of the arg
@@ -254,8 +254,9 @@ class Function:
             if var_name.startswith(self.object_prefix):
                 # remove prefix: _TRACKED
                 var_name = var_name[9:]
-            colored_new_part = cf.red(f"  {var_name}={old_value}") + " --> " + cf.green(f"new value: {new_value}")
-            uncolored_new_part = f"  {var_name}={old_value}" + " --> " + f"new value: {new_value}"
+            print_offset = self.print_offset * 2 * ' '
+            colored_new_part = print_offset + cf.red(f"{var_name}={old_value}") + " --> " + cf.green(f"{new_value}")
+            uncolored_new_part = print_offset + f"{var_name}={old_value}" + " --> " + f"{new_value}"
             if added_additional_line:
                 line.additional_line += ","
                 line.uncolored_additional_line += ","
