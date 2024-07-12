@@ -88,15 +88,15 @@ class Trace:
                 return
             # fxn_args = inspect.formatargvalues(*inspect.getargvalues(frame))
             if "dictcomp" in name:
-                print("DICTCOMP")
+                # print("DICTCOMP")
                 return
             if "listcomp" in name:
-                print("LISTCOMP")
+                # print("LISTCOMP")
                 return
             if "genexpr" in name:
                 # https://docs.python.org/3/library/inspect.html#current-state-of-generators-coroutines-and-asynchronous-generators
                 # Note: one day can support inspecting this ^
-                print("GENEXPR")
+                # print("GENEXPR")
                 return
             if self.first_function:
                 self.add_new_function_call(frame)

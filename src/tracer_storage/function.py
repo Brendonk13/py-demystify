@@ -430,7 +430,7 @@ class Function:
             # print("changed_values", changed_values)
             # var_name, value = changed_values.popitem()
             # TODO: test with a variable with multiple assignment in a loop
-            line.create_formatted_line(list(changed_values.keys()), list(changed_values.values()))
+            line.create_formatted_line(list(changed_values.keys()), list(changed_values.values()), self.object_prefix)
             # HOW TO ENFORCE NOT HAVING ADDITIONAL_LINE FOR LOOPS
             # print("LOOPPPPP, changed_values", changed_values, "is_assignment", is_assignment, "prev_line_code", self.prev_line_code)
         elif len(changed_values) > 0 or self.is_assignment():
@@ -439,7 +439,7 @@ class Function:
             var_names, values = self.extract_variable_assignments(changed_values)
             if var_names[0] == "" and values[0] == "":
                 return
-            line.create_formatted_line(var_names, values)
+            line.create_formatted_line(var_names, values, self.object_prefix)
 
 
 

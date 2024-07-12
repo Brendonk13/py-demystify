@@ -51,7 +51,7 @@ class Line:
     def __str__(self):
         return self.__repr__()
 
-    def create_formatted_line(self, var_names: List[str], values: List[Any]):
+    def create_formatted_line(self, var_names: List[str], values: List[Any], object_prefix: str):
         line = cf.cyan("  #") if self.print_mode == "debug" else "  #"
         num_vars = len(var_names)
         # construct formatted_line
@@ -59,6 +59,8 @@ class Line:
         for i in range(num_vars):
             var_name, value = var_names[i], values[i]
             if var_name != "":
+                if var_name.startswith(object_prefix):
+                    var_name = var_name[len(object_prefix):]
                 line_has_variables = True
             new_part = f" {var_name} = {value}"
 

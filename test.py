@@ -18,7 +18,18 @@ class Vector:
         return Vector(self.x + other.x, self.y + other.y)
 
 
+@Trace()
+def test_with():
+    x = 10
+    # def inner():
+        # x = 999
+
+    with os.scandir(".") as entries:
+        y = 8
+        simple_fxn()
+
 def double_assignment_loop_fn(end_range):
+    #TODO: THIS DOESNT WORK
     # x = 1
     some_dict = {"one": 1, "two": 2}
     for key, value in some_dict.items():
@@ -236,9 +247,10 @@ def test_nested_loops(end_range):
 if __name__ == "__main__":
 
     # idk = test_dict(666)
-    idk = test_function_call(444)
+    # idk = test_function_call(444)
     # test_nested_loops(5)
 
+    test_with()
     # idk = test_custom_objects(123)
     # test_context_manager()
     # idk = test_multi_line_statements(444)
