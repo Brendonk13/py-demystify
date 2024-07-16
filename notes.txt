@@ -250,6 +250,12 @@ In github readme:
         - showing changes is what u want
         - no dependencies!
 
+    How this can be used:
+        In General: Produce data about code.
+        - can integrate it with ai if you want
+        - should be used in testing for when tests fail
+        - teaching python ppl can use it for free
+
 Not working:
 
         # NOTE: can get more detailed call info: https://docs.python.org/3/library/inspect.html#inspect.getcallargs
