@@ -193,7 +193,7 @@ class Function:
         """
         # NOTE: I didnt need this before I did all the loop stuff
         if self.prev_line_code == "":
-            print("BYE")
+            # print("BYE")
             return
         curr_line_locals_set, curr_line_locals_dict = self.add_object_fields_to_locals(curr_line_locals_dict)
         new_variables = curr_line_locals_set - self.prev_line_locals_set
