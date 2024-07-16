@@ -126,7 +126,9 @@ def test_custom_objects(input_arg):
     return vect.x
 
 @Trace()
-def test_multi_line_statements(input_arg):
+def test_multi_line_statements(
+        input_arg,
+    ):
     string = "a String "
     # thirdVar = string * 2
     # here, other.update({ is the first traced line as opposed to other multi-line statements that start on the second line
@@ -138,14 +140,21 @@ def test_multi_line_statements(input_arg):
     #     # "last": thirdVar,
     # })
 
+    # -- damn, this isnt creating a 'call' event
+    # this also really messes with my variables or something
     def wtf(
-            bruh
+            bruh: str,
+            # oth=10
         ):
-        return bruh
+        # note: this gets converted to a one line fxn definition in the ast and source code in the frame and another func tingjancjk asncjka nscjknsajdcn askjdcnaskjn askjcnakj  asdjnc asdcj asjkd asjkdcnas
+        yo = "yooooo "
+        return yo + bruh
 
-    for i in range(0,
-                   2):
-        x = i
+    # for i in range(0,
+    #                2):
+        # x = i
+    x = 1
+    dang = wtf("friend")
 
     other = {
         "hello": "world",
@@ -156,11 +165,18 @@ def test_multi_line_statements(input_arg):
     # how do I check for when I am at the end of a multi-line statement
 
     # # if "one" in other and other["one"] \
-    if other["one"] \
-        and True:
+    # if other["one"] \
+    if False  and True:
         x = other
+    elif True \
+        and True:
+        x = "else if"
     else:
         x = 10
+
+    leaving = True
+    x = 10
+    return leaving
 
 @Trace()
 def test_function_call(input_arg):
