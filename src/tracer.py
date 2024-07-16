@@ -1,4 +1,5 @@
 import inspect
+import linecache
 import functools
 import sys
 from pprint import pprint, pformat
@@ -104,6 +105,7 @@ class Trace:
                 self.first_function = False
             else:
                 self.fxn_stack[-1].fxn_transition = True
+            # print("EVENT", self.fxn_stack[-1].fxn_transition)
 
             if self.trace_this_func(name):
                 return self.trace_lines
@@ -132,6 +134,8 @@ class Trace:
 
         # print("before pop", self.fxn_stack)
         # pop the function's variables
+        # print("POPPPING FXN")
+        # print("BEFORE pop", self.fxn_stack, self.fxn_stack[-1].prev_line_locals_dict)
         self.fxn_stack.pop()
         if not self.done_tracing():
             # add the called function's json to the caller
@@ -144,7 +148,7 @@ class Trace:
             self.json = json
             if 1:
                 pprint(json, sort_dicts=False, width=100)
-        # print("AFTER pop", self.fxn_stack)
+        print("AFTER pop", self.fxn_stack, self.fxn_stack[-1].prev_line_locals_dict)
 
 
     def trace_lines(self, frame: FrameType, event: str, arg: Any):
@@ -201,10 +205,6 @@ class Trace:
         self.fxn_stack[-1].print_line()
 
         # # if self.fxn_stack[-1].prev_line_code.strip() == "x = 20":
-        if self.fxn_stack[-1].prev_line_code:
-        #     # pprint(ast.dump(ast.parse(inspect.getsource(frame))))
-            source_code = inspect.getsource(frame)
-            pprint(find_multi_line_everything(source_code))
         #     # start_line, end_line = get_for_loop_line_numbers(source_code)
         #     # print(f"start: {start_line}, end: {end_line}")
         #     # pprint(lines)
@@ -213,9 +213,21 @@ class Trace:
         #     # pprint(ast.dump(ast_stuff))
         #     print()
 
+        print(self.fxn_stack, self.fxn_stack[-1].prev_line_locals_dict)
         if self.new_fxn_called():
+            print("NEW FXN")
+            print("BEFORE append", self.fxn_stack, self.fxn_stack[-1].prev_line_locals_dict)
             self.add_new_function_call(frame)
             self.fxn_stack[-1].initialize_locals(curr_line_locals_dict)
+            print("AFTER append", self.fxn_stack[-1].prev_line_locals_dict)
+
+
+            if self.fxn_stack[-1].prev_line_code:
+                # todo: add flag so this is called correctly
+                # todo: only call this for new functions, then store the line numbers of the multi-line statements
+            #     # pprint(ast.dump(ast.parse(inspect.getsource(frame))))
+                source_code = inspect.getsource(frame)
+                pprint(find_multi_line_everything(source_code, frame))
             # self.add_new_fxn_args_to_locals(frame, curr_line_locals_dict)
 
         if self.fxn_stack[-1].just_returned:
@@ -227,6 +239,8 @@ class Trace:
         if event == 'return':
             self.on_return(frame, arg)
             # print("after return", self.fxn_stack)
+
+            # this is the termination case for ending tracing
             if len(self.fxn_stack) == 1 and self.fxn_stack[0] == None:
                 return
         # have this as an else for weird case:
@@ -239,6 +253,12 @@ class Trace:
         else:
             # do this at the end since update_locals uses prev_line_code
             self.fxn_stack[-1].add_next_line(frame)
+        # skip_lane = False
+        # next_line_executed = inspect.getframeinfo(frame).code_context[0].rstrip() if not skip_lane else ""
+        # filename = frame.f_code.co_filename
+        # line_no = frame.f_lineno
+        # line = linecache.getline(filename, line_no).strip()
+        # print(f"NEXT, line_no: {line_no}", line)
 
 
     def new_fxn_called(self):

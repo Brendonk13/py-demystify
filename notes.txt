@@ -27,6 +27,18 @@ where we use deepcopy:
             -- need this to make set operations clean?
 
 
+multi-line:
+    - think I need to just detect when if statements have started and ended either way at the beginning of the function's execution or as I go
+
+    - mult-line assignments work by checking AST
+    - can find inner functions with AST
+        -- but they print super weird
+        -- will never work in debug mode
+
+    - multi-line loops bricked bad
+
+    - inner functions are ultra bricked -- not registered as a call event
+
 
 1. make self.started_antoher_iter only work for new iters and not
 
@@ -263,6 +275,11 @@ Not working:
         # or: https://docs.python.org/3/library/inspect.html#inspect.getfullargspec
         # inspect has a lot of functionality for all sorts of details for function calls
         - nested traces
+
+        - when tracing idk(x, oth=10)
+            if we then do oth = [1,2,3]
+            --> the return statement is marked as:
+                --> idk(x, other=[1,2,3]) returned ...
 
 
 frontend:
