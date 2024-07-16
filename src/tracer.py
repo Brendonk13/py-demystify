@@ -1,3 +1,4 @@
+import inspect
 import functools
 import sys
 from pprint import pprint, pformat
@@ -6,7 +7,7 @@ from types import FrameType, TracebackType
 import colorful as cf
 
 from .tracer_storage import Function
-from .helpers import get_fxn_name, get_fxn_signature, TracingError
+from .helpers import get_fxn_name, get_fxn_signature, TracingError, find_multi_line_everything
 
 
 
@@ -200,10 +201,10 @@ class Trace:
         self.fxn_stack[-1].print_line()
 
         # # if self.fxn_stack[-1].prev_line_code.strip() == "x = 20":
-        # if self.fxn_stack[-1].prev_line_code:
+        if self.fxn_stack[-1].prev_line_code:
         #     # pprint(ast.dump(ast.parse(inspect.getsource(frame))))
-        #     source_code = inspect.getsource(frame)
-        #     pprint(find_multi_line_everything(source_code))
+            source_code = inspect.getsource(frame)
+            pprint(find_multi_line_everything(source_code))
         #     # start_line, end_line = get_for_loop_line_numbers(source_code)
         #     # print(f"start: {start_line}, end: {end_line}")
         #     # pprint(lines)

@@ -1,7 +1,11 @@
 import ast
 import copy
 import inspect
+import re
+# import tokenize
+# from io import BytesIO
 from pprint import pprint
+
 
 from pygments.lexers import get_lexer_by_name
 from pygments import lex
@@ -48,29 +52,6 @@ def print_all(obj):
                 fields[attr_name] = attr_value
     pprint(fields)
     return fields
-
-def spans_multiple_lines(node):
-    return hasattr(node, 'lineno') and hasattr(node, 'end_lineno') and node.lineno != node.end_lineno
-
-# Example usage:
-def find_multi_line_everything(source_code):
-    tree = ast.parse(source_code)
-    for node in ast.walk(tree):
-        # if isinstance(node, (ast.For, ast.While)):
-        # if isinstance(node, ast.Assign):
-            # for target in node.targets:
-        # ast.For/While give you lineno, end_lineno for the whole damn loop
-        # ast.Dict will tell me multiple line dicts
-        # TODO: try with more stuff and change to isinstance(node, (ast.Call, ast.Assign, ... etc)):
-        if not isinstance(node, (ast.For, ast.While, ast.FunctionDef, ast.Dict, ast.BoolOp)):
-        # if not isinstance(node, (ast.For, ast.While, ast.FunctionDef)):
-            if spans_multiple_lines(node):
-                print(f"The loop statement '{ast.dump(node)}' spans multiple lines: {node.lineno} -> {node.end_lineno}")
-                print()
-                # print(get_for_loop_line_numbers(source_code))
-                # print(source_code)
-                # print("The target '{}' spans multiple lines".format(ast.dump(target)))
-
 
 def print_all_iterations(lines, loop_stack):
     code = [] + lines
@@ -161,3 +142,99 @@ def strip_inline_comments(replace_query):
         lines.append(''.join(line))
     strip_query = "\n".join(lines)
     return strip_query
+
+
+def spans_multiple_lines(node, frame):
+    node_is_not_inner_function = True
+
+    if isinstance(node, ast.FunctionDef) and get_fxn_name(frame) == node.name:
+        # we dont care if the outer function is multiple lines
+        node_is_not_inner_function = False
+
+    return all((
+        hasattr(node, 'lineno'),
+        hasattr(node, 'end_lineno'),
+        node.lineno != node.end_lineno,
+        node_is_not_inner_function,
+    ))
+
+# def find_special_characters(input_string):
+#     # Define a regex pattern to match non-alphanumeric characters
+#     pattern = r'\\[^\w\s]'
+
+
+#     # Use re.findall() to find all matches of the pattern
+#     special_characters = re.findall(pattern, input_string)
+
+#     return special_characters
+
+def cleanup_source_code(source_code):
+    cleaned = []
+
+    ongoing_line = ""
+    for line in source_code:
+        if line.endswith("\n"):
+            # If the string ends with "\n", add the current line to result
+            if ongoing_line:
+                cleaned.append(ongoing_line)
+                ongoing_line = ""
+            cleaned.append(line)  # Add the current string as a standalone line
+        else:
+            # Concatenate the string to the current line
+            ongoing_line += line
+
+    # Add the last accumulated line if any
+    if ongoing_line:
+        cleaned.append(ongoing_line)
+    return cleaned
+
+# Example usage:
+def find_multi_line_everything(source_code, frame):
+    tree = ast.parse(source_code)
+    multi_lines = {
+        "inner_functions": [],
+        "assignments": [],
+        "if": [],
+    }
+    print("=========== find")
+    # source_lines, starting_line = inspect.getsourcelines(frame.f_code)
+    # source_code = cleanup_source_code(source_code)
+    source_code = source_code.splitlines()
+    # source_code = ''.join(source_lines)
+    # pprint(source_code, width=200)
+
+    for node in ast.walk(tree):
+        # if isinstance(node, (ast.For, ast.While)):
+        # if isinstance(node, ast.Assign):
+            # for target in node.targets:
+        # ast.For/While give you lineno, end_lineno for the whole damn loop
+        # ast.Dict will tell me multiple line dicts
+        # TODO: try with more stuff and change to isinstance(node, (ast.Call, ast.Assign, ... etc)):
+        if not isinstance(node, (ast.For, ast.While, ast.Dict, ast.BoolOp, ast.Module, ast.arguments, ast.Store, ast.And, ast.Load, ast.Add)):
+        # if not isinstance(node, (ast.For, ast.While, ast.FunctionDef, ast.Dict, ast.BoolOp)):
+        # if not isinstance(node, (ast.For, ast.While, ast.FunctionDef)):
+            # print("type of node", type(node))
+            if spans_multiple_lines(node, frame):
+                print(f"The loop statement '{ast.dump(node)}' spans multiple lines: {node.lineno} -> {node.end_lineno}")
+                # code = "\n".join(source_code[node.lineno-1: node.end_lineno])
+                # g = list(tokenize.tokenize(BytesIO(code.encode('utf-8')).readline))  # tokenize the string
+                # print(code)
+                # print(f"tokens: {g}")
+
+                # NOTE: this works best for multi-line assignments
+
+                if isinstance(node, ast.FunctionDef):
+                    multi_lines["inner_functions"].append(node)
+                if isinstance(node, ast.Assign):
+                    multi_lines["assignments"].append(node)
+                if isinstance(node, ast.If):
+                    multi_lines["if"].append(node)
+
+                print()
+
+                # print(get_for_loop_line_numbers(source_code))
+                # print(source_code)
+                # print("The target '{}' spans multiple lines".format(ast.dump(target)))
+    print("multi line results", multi_lines)
+
+
